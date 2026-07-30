@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Time Clock — Seeded Database Preview</title>
+  <style>
+    :root { color-scheme:light; --ink:#172033; --muted:#667085; --line:#e4e7ec; --brand:#2457d6; --soft:#f5f7fb; }
+    * { box-sizing:border-box; }
+    body { margin:0; background:var(--soft); color:var(--ink); font:14px/1.45 Inter,Segoe UI,Arial,sans-serif; }
+    main { width:min(1440px,calc(100% - 48px)); margin:36px auto 64px; }
+    header { display:flex; justify-content:space-between; align-items:end; gap:24px; margin-bottom:24px; }
+    h1 { margin:0; font-size:30px; letter-spacing:-.6px; }
+    h2 { margin:0 0 16px; font-size:18px; }
+    .subtitle { margin:6px 0 0; color:var(--muted); }
+    .badge { padding:7px 11px; border-radius:999px; color:#fff; background:var(--brand); font-weight:700; }
+    .cards { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-bottom:22px; }
+    .card,.panel { background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 1px 2px rgba(16,24,40,.04); }
+    .card { padding:17px 19px; }
+    .card span { display:block; color:var(--muted); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+    .card strong { display:block; margin-top:4px; font-size:23px; }
+    .panel { padding:20px; margin-bottom:22px; overflow:hidden; }
+    .table-wrap { overflow:auto; max-height:560px; border:1px solid var(--line); border-radius:8px; }
+    table { width:100%; border-collapse:collapse; white-space:nowrap; }
+    th { position:sticky; top:0; z-index:1; background:#f8fafc; color:#475467; text-align:left; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+    th,td { padding:10px 12px; border-bottom:1px solid var(--line); }
+    tbody tr:hover { background:#f9fbff; }
+    .pending { display:inline-block; padding:3px 8px; border-radius:999px; color:#9a6700; background:#fff4cc; font-weight:700; }
+    .active { color:#067647; font-weight:700; }
+    .login { font-family:Consolas,monospace; font-size:13px!important; }
+    #error { display:none; margin-bottom:18px; padding:16px; color:#b42318; background:#fef3f2; border:1px solid #fecdca; border-radius:10px; }
+    @media(max-width:900px) { .cards{grid-template-columns:1fr 1fr} main{width:calc(100% - 24px)} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Seeded Database Preview</h1>
+      <p class="subtitle">Development data loaded from the active SQLite database</p>
+    </div>
+    <span class="badge">Development</span>
+  </header>
+  <div id="error"></div>
+  <section class="cards">
+    <div class="card"><span>Employees</span><strong id="employee-count">—</strong></div>
+    <div class="card"><span>Pending requests</span><strong id="request-count">—</strong></div>
+    <div class="card"><span>Admin login</span><strong class="login" id="admin-login">—</strong></div>
+    <div class="card"><span>Seed password</span><strong class="login" id="seed-password">—</strong></div>
+  </section>
+  <section class="panel">
+    <h2>Pending time-off requests</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>ID</th><th>Employee</th><th>Name</th><th>Type</th><th>Start</th><th>End</th><th>Status</th><th>Reason</th></tr></thead>
+        <tbody id="requests"></tbody>
+      </table>
+    </div>
+  </section>
+  <section class="panel">
+    <h2>Employees</h2>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>DB ID</th><th>Employee ID</th><th>Employee #</th><th>Name</th><th>Email</th><th>Timezone</th><th>Active</th></tr></thead>
+        <tbody id="employees"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+<script>
+  const escapeHtml = value => String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"
+  })[ch]);
+  fetch("/api/development/seed-preview")
+    .then(response => {
+      if (!response.ok) throw new Error(`Preview request failed (${response.status}).`);
+      return response.json();
+    })
+    .then(data => {
+      document.querySelector("#employee-count").textContent = data.employeeCount;
+      document.querySelector("#request-count").textContent = data.pendingRequestCount;
+      document.querySelector("#admin-login").textContent = data.developmentLogin.administratorEmail;
+      document.querySelector("#seed-password").textContent = data.developmentLogin.password;
+      document.querySelector("#requests").innerHTML = data.pendingTimeOffRequests.map(item => `
+        <tr><td>${item.id}</td><td>${item.employeeNumber}</td><td>${escapeHtml(item.employee)}</td>
+        <td>${item.type}</td><td>${item.startDate}</td><td>${item.endDate}</td>
+        <td><span class="pending">${item.status}</span></td><td>${escapeHtml(item.reason)}</td></tr>`).join("");
+      document.querySelector("#employees").innerHTML = data.employees.map(item => `
+        <tr><td>${item.id}</td><td>${item.employeeId}</td><td>${item.employeeNumber}</td>
+        <td>${escapeHtml(item.name)}</td><td>${escapeHtml(item.email)}</td>
+        <td>${item.timezone}</td><td class="active">${item.isActive ? "Yes" : "No"}</td></tr>`).join("");
+    })
+    .catch(error => {
+      const box = document.querySelector("#error");
+      box.style.display = "block";
+      box.textContent = `${error.message} Start the API in Development mode and refresh this page.`;
+    });
+</script>
+</body>
+</html>
