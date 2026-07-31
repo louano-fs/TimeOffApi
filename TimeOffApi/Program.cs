@@ -68,6 +68,8 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITimeClockService, TimeClockService>();
 builder.Services.AddScoped<ITimeLogService, TimeLogService>();
+builder.Services.AddScoped<ITimeOffRequestRepository, TimeOffRequestRepository>();
+builder.Services.AddScoped<ITimeOffRequestService, TimeOffRequestService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
 
 var databaseProvider = builder.Configuration["DatabaseProvider"] ?? "Sqlite";
