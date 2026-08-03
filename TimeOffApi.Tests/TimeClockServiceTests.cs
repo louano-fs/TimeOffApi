@@ -95,6 +95,202 @@ public sealed class TimeClockServiceTests
     }
 
     [Fact]
+    public async Task ClockOut_before_a_completed_break_end_is_rejected()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+        await fixture.Service.StartBreakAsync("2026-07-30T12:00:00+08:00", CancellationToken.None);
+        await fixture.Service.EndBreakAsync("2026-07-30T13:00:00+08:00", CancellationToken.None);
+
+        var action = () => fixture.Service.ClockOutAsync(
+            "2026-07-30T12:30:00+08:00", CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ValidationException>();
+        exception.Which.Code.Should().Be("CLOCK_OUT_BEFORE_BREAK_END");
+        (await fixture.Db.TimeLogs.SingleAsync(
+            x => x.Type == TimeLogType.Work,
+            TestContext.Current.CancellationToken)).End.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ClockOut_without_an_active_work_session_returns_a_domain_conflict()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        var action = () => fixture.Service.ClockOutAsync(
+            "2026-07-30T17:00:00+08:00", CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ConflictException>();
+        exception.Which.Code.Should().Be("NO_ACTIVE_WORK_SESSION");
+    }
+
+    [Theory]
+    [InlineData("2026-07-30T08:00:00+08:00")]
+    [InlineData("2026-07-30T07:59:59+08:00")]
+    public async Task ClockOut_must_be_later_than_clock_in(string clockOut)
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+
+        var action = () => fixture.Service.ClockOutAsync(clockOut, CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ValidationException>();
+        exception.Which.Code.Should().Be("INVALID_CLOCK_OUT");
+        (await fixture.Db.TimeLogs.SingleAsync(TestContext.Current.CancellationToken))
+            .End.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ClockOut_preserves_seconds_and_reports_only_complete_worked_minutes()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+
+        var result = await fixture.Service.ClockOutAsync(
+            "2026-07-30T08:01:59+08:00", CancellationToken.None);
+
+        result.End.Should().Be(new DateTime(2026, 7, 30, 0, 1, 59, DateTimeKind.Utc));
+        result.WorkedMinutes.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ClockOut_does_not_cap_an_overtime_length_session()
+    {
+        await using var fixture = await TestFixture.CreateAsync(
+            now: new DateTimeOffset(2026, 7, 30, 13, 0, 0, TimeSpan.Zero));
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+
+        var result = await fixture.Service.ClockOutAsync(
+            "2026-07-30T18:30:45+08:00", CancellationToken.None);
+
+        result.WorkedMinutes.Should().Be(630);
+    }
+
+    [Fact]
+    public async Task Clock_actions_do_not_require_a_manager_relationship()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+
+        // Manager assignment is intentionally not part of the User model, so no manager
+        // data is configured for this employee before exercising both clock actions.
+        var clockIn = await fixture.Service.ClockInAsync(
+            "2026-07-30T08:00:00+08:00", CancellationToken.None);
+        var clockOut = await fixture.Service.ClockOutAsync(
+            "2026-07-30T09:00:00+08:00", CancellationToken.None);
+
+        clockIn.Status.Should().Be("Working");
+        clockOut.Status.Should().Be("Completed");
+        clockOut.WorkedMinutes.Should().Be(60);
+    }
+
+    [Fact]
+    public async Task ClockIn_during_a_completed_session_is_rejected_as_an_overlap()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+        await fixture.Service.ClockOutAsync("2026-07-30T09:00:00+08:00", CancellationToken.None);
+
+        var action = () => fixture.Service.ClockInAsync(
+            "2026-07-30T08:30:00+08:00", CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ConflictException>();
+        exception.Which.Code.Should().Be("ACTIVE_OR_OVERLAPPING_WORK_SESSION");
+        (await fixture.Db.TimeLogs.CountAsync(TestContext.Current.CancellationToken)).Should().Be(1);
+    }
+
+    [Fact]
+    public async Task ClockIn_at_the_previous_clock_out_time_starts_an_adjacent_session()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+        await fixture.Service.ClockOutAsync("2026-07-30T09:00:00+08:00", CancellationToken.None);
+
+        var result = await fixture.Service.ClockInAsync(
+            "2026-07-30T09:00:00+08:00", CancellationToken.None);
+
+        result.Status.Should().Be("Working");
+        (await fixture.Db.TimeLogs.CountAsync(TestContext.Current.CancellationToken)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task ClockIn_ignores_a_deleted_work_session()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.Db.TimeLogs.Add(new TimeLog
+        {
+            UserId = fixture.User.Id,
+            ShiftDate = new DateTime(2026, 7, 30),
+            Start = new DateTime(2026, 7, 30, 0, 0, 0, DateTimeKind.Utc),
+            Type = TimeLogType.Work,
+            Timezone = fixture.User.Timezone,
+            IsDeleted = true,
+            CreatedAt = new DateTime(2026, 7, 30, 0, 0, 0, DateTimeKind.Utc)
+        });
+        await fixture.Db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var result = await fixture.Service.ClockInAsync(
+            "2026-07-30T08:30:00+08:00", CancellationToken.None);
+
+        result.Status.Should().Be("Working");
+        (await fixture.Db.TimeLogs.CountAsync(TestContext.Current.CancellationToken)).Should().Be(2);
+    }
+
+    [Fact]
+    public async Task Inactive_employee_cannot_clock_in()
+    {
+        await using var fixture = await TestFixture.CreateAsync(isActive: false);
+
+        var action = () => fixture.Service.ClockInAsync(
+            "2026-07-30T08:00:00+08:00", CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ForbiddenException>();
+        exception.Which.Code.Should().Be("USER_INACTIVE");
+        (await fixture.Db.TimeLogs.CountAsync(TestContext.Current.CancellationToken)).Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Employee_deactivated_after_clock_in_cannot_clock_out()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        await fixture.Service.ClockInAsync("2026-07-30T08:00:00+08:00", CancellationToken.None);
+        fixture.User.IsActive = false;
+        await fixture.Db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var action = () => fixture.Service.ClockOutAsync(
+            "2026-07-30T09:00:00+08:00", CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ForbiddenException>();
+        exception.Which.Code.Should().Be("USER_INACTIVE");
+        (await fixture.Db.TimeLogs.SingleAsync(TestContext.Current.CancellationToken))
+            .End.Should().BeNull();
+    }
+
+    [Fact]
+    public async Task ClockOut_ignores_a_deleted_active_work_session()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.Db.TimeLogs.Add(new TimeLog
+        {
+            UserId = fixture.User.Id,
+            ShiftDate = new DateTime(2026, 7, 30),
+            Start = new DateTime(2026, 7, 30, 0, 0, 0, DateTimeKind.Utc),
+            Type = TimeLogType.Work,
+            Timezone = fixture.User.Timezone,
+            IsDeleted = true,
+            CreatedAt = new DateTime(2026, 7, 30, 0, 0, 0, DateTimeKind.Utc)
+        });
+        await fixture.Db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var action = () => fixture.Service.ClockOutAsync(
+            "2026-07-30T09:00:00+08:00", CancellationToken.None);
+
+        var exception = await action.Should().ThrowAsync<ConflictException>();
+        exception.Which.Code.Should().Be("NO_ACTIVE_WORK_SESSION");
+        (await fixture.Db.TimeLogs.SingleAsync(TestContext.Current.CancellationToken))
+            .End.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Status_reports_an_active_session_and_live_worked_minutes()
     {
         await using var fixture = await TestFixture.CreateAsync();
@@ -126,17 +322,22 @@ public sealed class TimeClockServiceTests
         private TestFixture(
             SqliteConnection connection,
             AppDbContext db,
+            User user,
             TimeClockService service)
         {
             _connection = connection;
             Db = db;
+            User = user;
             Service = service;
         }
 
         public AppDbContext Db { get; }
+        public User User { get; }
         public TimeClockService Service { get; }
 
-        public static async Task<TestFixture> CreateAsync()
+        public static async Task<TestFixture> CreateAsync(
+            bool isActive = true,
+            DateTimeOffset? now = null)
         {
             var connection = new SqliteConnection("Data Source=:memory:");
             await connection.OpenAsync();
@@ -154,7 +355,7 @@ public sealed class TimeClockServiceTests
                 FirstName = "Test",
                 LastName = "Employee",
                 Timezone = "Asia/Manila",
-                IsActive = true,
+                IsActive = isActive,
                 CreatedAt = DateTime.UtcNow
             };
             db.Users.Add(user);
@@ -162,11 +363,11 @@ public sealed class TimeClockServiceTests
 
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.SetupGet(x => x.UserId).Returns(user.Id);
-            var now = new FixedTimeProvider(
-                new DateTimeOffset(2026, 7, 30, 10, 0, 0, TimeSpan.Zero));
+            var timeProvider = new FixedTimeProvider(now
+                ?? new DateTimeOffset(2026, 7, 30, 10, 0, 0, TimeSpan.Zero));
             var service = new TimeClockService(
-                db, currentUser.Object, new UserLockService(), now);
-            return new TestFixture(connection, db, service);
+                db, currentUser.Object, new UserLockService(), timeProvider);
+            return new TestFixture(connection, db, user, service);
         }
 
         public async ValueTask DisposeAsync()
