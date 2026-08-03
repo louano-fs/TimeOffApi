@@ -12,7 +12,8 @@ namespace TimeOffApi.Controllers;
 [Authorize(Roles = nameof(UserRole.Administrator))]
 public sealed class AdminTimeLogsController(
     ITimeLogService timeLogs,
-    ITimeClockService timeClock) : ControllerBase
+    ITimeClockService timeClock,
+    ITimeOffRequestService timeOffRequests) : ControllerBase
 {
     [HttpGet("time-logs")]
     public async Task<PagedResponse<WorkSessionResponse>> Get(
@@ -27,4 +28,16 @@ public sealed class AdminTimeLogsController(
     [HttpGet("users/{userId:int}/time-clock/status")]
     public Task<ClockStatusResponse> Status(int userId, CancellationToken cancellationToken) =>
         timeClock.GetStatusAsync(userId, cancellationToken);
+
+    [HttpPost("time-off-requests/{id:int}/approve")]
+    public Task<TimeOffDecisionResponse> ApproveTimeOffRequest(
+        int id,
+        CancellationToken cancellationToken) =>
+        timeOffRequests.ApproveAsync(id, cancellationToken);
+
+    [HttpPost("time-off-requests/{id:int}/reject")]
+    public Task<TimeOffDecisionResponse> RejectTimeOffRequest(
+        int id,
+        CancellationToken cancellationToken) =>
+        timeOffRequests.RejectAsync(id, cancellationToken);
 }
