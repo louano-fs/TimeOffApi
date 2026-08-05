@@ -1,58 +1,103 @@
-<main class="min-h-screen bg-slate-100 px-4 py-8 sm:px-6">
-  <div class="mx-auto max-w-6xl">
-    @if (!authService.isAuthenticated()) {
-      <div class="py-10">
+<main class="min-h-screen bg-[var(--surface-muted)]">
+  @if (!authService.isAuthenticated()) {
+    <header
+      class="border-t-4 border-[var(--brand)] bg-[var(--brand-dark)] text-white shadow-lg shadow-emerald-950/10"
+    >
+      <div class="mx-auto flex max-w-7xl items-center gap-3 px-4 py-5 sm:px-6 lg:px-8">
+        <div
+          aria-hidden="true"
+          class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-black tracking-wide ring-1 ring-white/25"
+        >
+          TC
+        </div>
+
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">
+            Employee Portal
+          </p>
+          <p class="mt-0.5 text-lg font-bold">Time Clock</p>
+        </div>
+      </div>
+    </header>
+
+    <div class="mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14 lg:px-8">
+      <div class="rounded-3xl bg-white/65 px-2 py-4 sm:px-6 sm:py-8">
         <app-login-panel
           [isSubmitting]="isLoggingIn()"
           [errorMessage]="loginError()"
           (loginSubmitted)="login($event)"
         />
       </div>
-    } @else {
-      <header
-        class="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between"
+    </div>
+  } @else {
+    <header
+      class="border-t-4 border-[var(--brand)] bg-[var(--brand-dark)] text-white shadow-lg shadow-emerald-950/10"
+    >
+      <div
+        class="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8"
       >
-        <div>
-          <p class="text-sm font-semibold uppercase tracking-wider text-blue-600">
-            Employee Portal
-          </p>
+        <div class="flex min-w-0 items-center gap-3 sm:gap-4">
+          <div
+            aria-hidden="true"
+            class="flex size-11 shrink-0 items-center justify-center rounded-xl bg-white/15 text-sm font-black tracking-wide ring-1 ring-white/25 sm:size-12"
+          >
+            TC
+          </div>
 
-          <h1 class="mt-2 text-3xl font-bold text-slate-900">
-            Welcome, {{ authService.session()?.firstName }}
-          </h1>
-
-          <p class="mt-1 text-slate-600">Employee #{{ authService.session()?.employeeNumber }}</p>
+          <div class="min-w-0">
+            <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">
+              Employee Time Clock
+            </p>
+            <h1 class="mt-1 truncate text-2xl font-bold sm:text-3xl">
+              Welcome, {{ authService.session()?.firstName }}
+            </h1>
+          </div>
         </div>
 
-        <button
-          type="button"
-          class="self-start rounded-lg border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-50"
-          (click)="logout()"
-        >
-          Log out
-        </button>
-      </header>
+        <div class="flex items-center justify-between gap-4 md:justify-end">
+          <div class="border-l border-white/25 pl-4 md:text-right">
+            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-100">Employee</p>
+            <p class="mt-0.5 font-mono text-sm font-bold tracking-wide text-white">
+              #{{ authService.session()?.employeeNumber }}
+            </p>
+          </div>
 
-      <section class="mt-8">
-        <app-clock-card
-          [status]="clockStatus()"
-          [isLoading]="isStatusLoading()"
-          [pendingAction]="pendingClockAction()"
-          [errorMessage]="clockError()"
-          (actionRequested)="performClockAction($event)"
-          (refreshRequested)="loadClockStatus(true)"
-        />
-      </section>
+          <button
+            type="button"
+            class="rounded-xl border border-white/40 bg-white px-4 py-2.5 text-sm font-bold text-[var(--brand-deep)] shadow-sm transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/35"
+            (click)="logout()"
+          >
+            Log out
+          </button>
+        </div>
+      </div>
+    </header>
 
-      <section class="mt-8">
-        <app-time-log-table
-          [timeLogs]="timeLogs()"
-          [isLoading]="isTimeLogsLoading()"
-          [errorMessage]="timeLogsError()"
-          (pageRequested)="loadTimeLogs($event, true)"
-          (refreshRequested)="loadTimeLogs(currentTimeLogsPage(), true)"
-        />
-      </section>
-    }
-  </div>
+    <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+      <div class="dashboard-layout" data-dashboard-layout>
+        <div class="dashboard-main space-y-6 sm:space-y-8">
+          <section>
+            <app-clock-card
+              [status]="clockStatus()"
+              [isLoading]="isStatusLoading()"
+              [pendingAction]="pendingClockAction()"
+              [errorMessage]="clockError()"
+              (actionRequested)="performClockAction($event)"
+              (refreshRequested)="loadClockStatus(true)"
+            />
+          </section>
+
+          <section>
+            <app-time-log-table
+              [timeLogs]="timeLogs()"
+              [isLoading]="isTimeLogsLoading()"
+              [errorMessage]="timeLogsError()"
+              (pageRequested)="loadTimeLogs($event, true)"
+              (refreshRequested)="loadTimeLogs(currentTimeLogsPage(), true)"
+            />
+          </section>
+        </div>
+      </div>
+    </div>
+  }
 </main>
