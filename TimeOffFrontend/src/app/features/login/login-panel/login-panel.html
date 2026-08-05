@@ -37,7 +37,7 @@
             @if (form.controls.email.touched && form.controls.email.hasError('required')) {
                 <p class="mt-1 text-sm text-red-600">
                     Email is required.
-                </p> 
+                </p>
             } @else if (form.controls.email.touched && form.controls.email.hasError('email')) {
                 <p class="mt-1 text-sm text-red-600">
                     Please enter a valid email address.
@@ -91,6 +91,6 @@
             } @else {
                 Sign in
             }
-        </button>   
+        </button>
     </form>
 </section>

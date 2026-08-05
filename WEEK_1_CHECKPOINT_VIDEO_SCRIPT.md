@@ -1,6 +1,6 @@
 # Week 1 Checkpoint Video Script
 
-**Target length:** Approximately 5 minutes  
+**Target length:** Approximately 5 minutes
 **Speaking style:** Give the answer first, then the reason, then an example.
 
 > Before recording, replace the bracketed test-status sentence with your verified result.
