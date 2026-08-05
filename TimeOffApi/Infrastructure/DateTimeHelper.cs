@@ -24,10 +24,35 @@ public static partial class DateTimeHelper
 
     public static DateTime LocalDate(DateTime utc, string timeZoneId)
     {
+        var zone = FindTimeZone(timeZoneId);
+        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone).Date;
+    }
+
+    public static (DateTime Start, DateTime End) UtcDayBounds(DateTime utc, string timeZoneId)
+    {
+        var zone = FindTimeZone(timeZoneId);
+        var localDate = TimeZoneInfo.ConvertTimeFromUtc(
+            DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone).Date;
+        var nextLocalDate = localDate.AddDays(1);
+        var localDayStart = DateTime.SpecifyKind(localDate, DateTimeKind.Unspecified);
+        var localDayEnd = DateTime.SpecifyKind(nextLocalDate, DateTimeKind.Unspecified);
+
+        return (
+            ResolveLocalBoundary(localDayStart, zone),
+            ResolveLocalBoundary(localDayEnd, zone));
+    }
+
+    public static int Minutes(TimeSpan duration) =>
+        Math.Max(0, (int)Math.Floor(duration.TotalMinutes));
+
+    public static int Seconds(TimeSpan duration) =>
+        Math.Max(0, (int)Math.Floor(duration.TotalSeconds));
+
+    private static TimeZoneInfo FindTimeZone(string timeZoneId)
+    {
         try
         {
-            var zone = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-            return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone).Date;
+            return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
         }
         catch (TimeZoneNotFoundException)
         {
@@ -39,6 +64,15 @@ public static partial class DateTimeHelper
         }
     }
 
-    public static int Minutes(TimeSpan duration) =>
-        Math.Max(0, (int)Math.Floor(duration.TotalMinutes));
+    private static DateTime ResolveLocalBoundary(DateTime localBoundary, TimeZoneInfo zone)
+    {
+        while (zone.IsInvalidTime(localBoundary))
+            localBoundary = localBoundary.AddMinutes(1);
+
+        if (!zone.IsAmbiguousTime(localBoundary))
+            return TimeZoneInfo.ConvertTimeToUtc(localBoundary, zone);
+
+        var earliestOffset = zone.GetAmbiguousTimeOffsets(localBoundary).Max();
+        return new DateTimeOffset(localBoundary, earliestOffset).UtcDateTime;
+    }
 }

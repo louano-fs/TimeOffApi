@@ -1,15 +1,9 @@
 import { provideHttpClient } from '@angular/common/http';
-import {
-  HttpTestingController,
-  provideHttpClientTesting,
-} from '@angular/common/http/testing';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { TestBed } from '@angular/core/testing';
 import { Observable } from 'rxjs';
 
-import {
-  ClockStatusResponse,
-  TimeLogResponse,
-} from '../../shared/models/clock.model';
+import { ClockStatusResponse, TimeLogResponse } from '../../shared/models/clock.model';
 import { TimeClockApiService } from './time-clock-api.service';
 
 describe('TimeClockApiService', () => {
@@ -30,10 +24,7 @@ describe('TimeClockApiService', () => {
 
   beforeEach(() => {
     TestBed.configureTestingModule({
-      providers: [
-        provideHttpClient(),
-        provideHttpClientTesting(),
-      ],
+      providers: [provideHttpClient(), provideHttpClientTesting()],
     });
 
     service = TestBed.inject(TimeClockApiService);
@@ -47,8 +38,12 @@ describe('TimeClockApiService', () => {
   it('gets the current clock status', () => {
     const expected: ClockStatusResponse = {
       status: 'ClockedOut',
+      asOf: '2026-08-05T01:00:00Z',
+      currentDayEndsAt: '2026-08-05T16:00:00Z',
       workedMinutesToday: 480,
       breakMinutesToday: 60,
+      workedSecondsToday: 28_800,
+      breakSecondsToday: 3_600,
     };
 
     let result: ClockStatusResponse | undefined;
@@ -57,9 +52,7 @@ describe('TimeClockApiService', () => {
       result = response;
     });
 
-    const request = httpTesting.expectOne(
-      '/api/time-clock/status',
-    );
+    const request = httpTesting.expectOne('/api/time-clock/status');
 
     expect(request.request.method).toBe('GET');
 
@@ -69,37 +62,22 @@ describe('TimeClockApiService', () => {
   });
 
   it('posts a clock-in action', () => {
-    expectActionRequest(
-      service.clockIn(timestamp),
-      '/api/time-clock/clock-in',
-    );
+    expectActionRequest(service.clockIn(timestamp), '/api/time-clock/clock-in');
   });
 
   it('posts a start-break action', () => {
-    expectActionRequest(
-      service.startBreak(timestamp),
-      '/api/time-clock/break/start',
-    );
+    expectActionRequest(service.startBreak(timestamp), '/api/time-clock/break/start');
   });
 
   it('posts an end-break action', () => {
-    expectActionRequest(
-      service.endBreak(timestamp),
-      '/api/time-clock/break/end',
-    );
+    expectActionRequest(service.endBreak(timestamp), '/api/time-clock/break/end');
   });
 
   it('posts a clock-out action', () => {
-    expectActionRequest(
-      service.clockOut(timestamp),
-      '/api/time-clock/clock-out',
-    );
+    expectActionRequest(service.clockOut(timestamp), '/api/time-clock/clock-out');
   });
 
-  function expectActionRequest(
-    action: Observable<TimeLogResponse>,
-    expectedUrl: string,
-  ): void {
+  function expectActionRequest(action: Observable<TimeLogResponse>, expectedUrl: string): void {
     let result: TimeLogResponse | undefined;
 
     action.subscribe((response) => {

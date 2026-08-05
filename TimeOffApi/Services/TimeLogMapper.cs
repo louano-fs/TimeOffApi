@@ -57,4 +57,37 @@ internal static class TimeLogMapper
             Math.Max(0, elapsed - breakMinutes),
             breakDtos);
     }
+
+    public static (TimeSpan Worked, TimeSpan Break) ToDurationsWithin(
+        TimeLog work,
+        DateTime utcNow,
+        DateTime rangeStart,
+        DateTime rangeEnd)
+    {
+        var workStart = Utc(work.Start) > rangeStart ? Utc(work.Start) : rangeStart;
+        var effectiveEnd = work.End is null ? utcNow : Utc(work.End.Value);
+        var workEnd = effectiveEnd < rangeEnd ? effectiveEnd : rangeEnd;
+
+        if (workEnd <= workStart)
+            return (TimeSpan.Zero, TimeSpan.Zero);
+
+        var elapsed = workEnd - workStart;
+        var breakDuration = work.Breaks
+            .Where(x => !x.IsDeleted)
+            .Aggregate(TimeSpan.Zero, (total, breakLog) =>
+            {
+                var breakStart = Utc(breakLog.Start) > workStart
+                    ? Utc(breakLog.Start)
+                    : workStart;
+                var breakEnd = breakLog.End is null ? utcNow : Utc(breakLog.End.Value);
+                breakEnd = breakEnd < workEnd ? breakEnd : workEnd;
+                var duration = breakEnd - breakStart;
+                return duration > TimeSpan.Zero ? total + duration : total;
+            });
+        var workedDuration = elapsed > breakDuration
+            ? elapsed - breakDuration
+            : TimeSpan.Zero;
+
+        return (workedDuration, breakDuration);
+    }
 }

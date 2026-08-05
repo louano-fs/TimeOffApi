@@ -147,13 +147,13 @@ Tests stay beside the component or service they cover. Shared models contain onl
 ### Requirements
 
 - The page must work at desktop and narrow mobile widths. The table may scroll horizontally on small screens while retaining table semantics.
-- The clock card must show the current status, today's worked minutes, today's break minutes, and only valid actions.
+- The clock card must show the current status, today's worked and break time as live `HH:MM:SS` values, and only valid actions.
 - The page must show loading, empty, success, and error states without relying only on color.
 - Action buttons must be disabled while a mutation is pending.
 - The table must load 20 work sessions per page and expose Previous and Next controls based on `totalPages`.
 - Day and date come from `shiftDate`. Clock times use the session's stored timezone.
 - Minute values use a shared formatter such as `630` to `10h 30m` and `0` to `0m`.
-- A status refresh runs once every 60 seconds while authenticated and the page is active. The table refreshes after local actions or manual refresh, not on the timer.
+- The visible duration advances locally once per second according to the current status. A status refresh runs once every 60 seconds while authenticated and resynchronizes the exact totals with the server. The table refreshes after local actions or manual refresh, not on the timer.
 - The layout must reserve no empty chatbot space. A future sidebar can be added beside the main dashboard without changing the API services.
 
 ## 6. Interfaces and data
@@ -191,8 +191,12 @@ interface ClockStatusResponse {
   activeBreakLogId?: number;
   clockedInAt?: string;
   breakStartedAt?: string;
+  asOf: string;
+  currentDayEndsAt: string;
   workedMinutesToday: number;
   breakMinutesToday: number;
+  workedSecondsToday: number;
+  breakSecondsToday: number;
 }
 
 interface BreakResponse {
@@ -259,6 +263,8 @@ GET requests may be retried only by the user, the 60-second status refresh, or a
 
 When the component is destroyed or the employee logs out, the status timer and active subscriptions stop. A request already accepted by the backend is allowed to finish server-side, but its late response must not update a destroyed page. Logging out clears browser authentication state immediately.
 
+The API calculates exact worked and break seconds from persisted work and break timestamps whenever status is requested. It also returns `asOf` and `currentDayEndsAt`, both in UTC, so the browser knows how long remains in the employee's current local day without trusting the device's timezone. The browser treats those values as an authoritative baseline: worked seconds advance only in `Working`, break seconds advance only in `OnBreak`, and both remain fixed in `ClockedOut`. Each one-second display update derives elapsed time from the baseline timestamp instead of counting callbacks, so a throttled background tab catches up when it runs again. At the local-day boundary the display resets immediately and requests a fresh status baseline. Reloading or closing the page does not stop the server-side session; after the next authenticated status request, the display resumes from the persisted total.
+
 If status succeeds and logs fail, the clock card remains usable and the table shows its own retry state. If a mutation succeeds but either refresh fails, the page reports that the action was accepted and offers refresh rather than guessing the new state.
 
 ## 8. Security, privacy, and operations
@@ -267,7 +273,7 @@ The backend remains the authorization boundary. The frontend hides invalid contr
 
 The login password exists only in the form until submission. It is not written to storage, application logs, URLs, or error messages. The JWT is stored per tab in `sessionStorage`, never printed, and attached only to relative `/api` requests. No UI code uses raw HTML injection for API messages.
 
-The status timer creates at most one GET request per authenticated tab per minute. It pauses when the page is destroyed and does not poll time logs. Mutation controls allow one pending action, which prevents accidental double clicks but does not replace backend concurrency protection.
+The display ticker performs no network requests. The status refresh creates at most one GET request per authenticated tab per minute, pauses when the page is destroyed, and does not poll time logs. Mutation controls allow one pending action, which prevents accidental double clicks but does not replace backend concurrency protection.
 
 Local development requires the Angular server on port `4200` and the API HTTPS profile on port `7251`. Production deployment configuration is unchanged by this first design and must provide the same-origin `/api` path before release.
 
@@ -285,15 +291,17 @@ Local development requires the Angular server on port `4200` and the API HTTPS p
 - A `401` response clears the stored session and returns the employee to the login panel.
 - The frontend runs through the `/api` development proxy without backend CORS changes.
 - Refreshing the browser in the same tab restores an unexpired login; closing the tab removes it.
+- While working, worked time advances every second in `HH:MM:SS` and break time remains still. While on break, break time advances and worked time remains still. Both remain still after clock-out.
+- Reloading or leaving and later reopening the application does not reset an active session; the next authenticated status request restores the server-computed elapsed seconds.
 - No chatbot UI, AI call, or AI-triggered action is present.
 
 ## 10. Test approach
 
-Vitest component tests will verify the three-state button matrix, disabled pending state, login validation, empty/error/table rendering, nested break expansion, paging events, and duration formatting.
+Vitest component tests will verify the three-state button matrix, disabled pending state, login validation, empty/error/table rendering, nested break expansion, paging events, `HH:MM:SS` formatting, and which timer advances in every clock state.
 
 HTTP service tests will use Angular's HTTP testing utilities to verify method, URL, query parameters, and action request bodies. Interceptor tests will prove that the JWT is added to relative `/api` requests, omitted from external requests, and cleared on `401`.
 
-Dashboard tests will use mocked services to prove initial parallel loading, independent section failures, post-action refresh, conflict refresh, and cleanup of the 60-second timer.
+Backend service tests will prove that status reports exact worked and break seconds from persisted timestamps, including an active break. Dashboard tests will use mocked services to prove initial parallel loading, independent section failures, post-action refresh, conflict refresh, and cleanup of the 60-second status refresh.
 
 A manual browser check will run Angular at `http://localhost:4200` with the API HTTPS profile. It will cover login, the full clock-in, break, end-break, and clock-out sequence, table refresh, page reload, keyboard navigation, and a narrow viewport.
 
@@ -303,6 +311,8 @@ A manual browser check will run Angular at `http://localhost:4200` with the API 
 - **Backend and TypeScript contracts can drift:** Handwritten interfaces do not update automatically. Keep endpoint models centralized and later consider generating a client from OpenAPI.
 - **Timezone formatting can be inconsistent across browsers:** Use `shiftDate` for the calendar date and one shared formatter for timestamps with the API-provided timezone. Test with `Asia/Manila` and UTC.
 - **Polling scales per open tab:** The fixed limit is one status request per minute per authenticated tab. Stop polling on logout and component destruction.
+- **Client clocks and throttling can affect animation:** Derive each display update from a received baseline rather than counting interval callbacks, and replace the baseline with server-computed exact seconds every minute and after every clock action.
+- **Some timezones skip or repeat local midnight:** Resolve invalid midnight to the first valid local instant and ambiguous midnight to its earliest UTC occurrence before clipping daily intervals.
 - **Expanded break rows increase table complexity:** Keep breaks nested under one work session and exclude them from pagination totals.
 - **Client-side rendering gives up server-rendered HTML:** This is acceptable for an authenticated internal tool and reduces browser-state complexity.
 
@@ -319,4 +329,4 @@ A manual browser check will run Angular at `http://localhost:4200` with the API 
 - Registration, password reset, refresh tokens, single sign-on, and production cookie authentication.
 - Editing, deleting, or correcting time logs.
 - Notifications, offline actions, background synchronization, and multi-language support.
-- Backend API, database, or authentication changes.
+- Database schema and authentication changes.
