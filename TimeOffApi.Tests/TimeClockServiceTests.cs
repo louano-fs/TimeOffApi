@@ -302,6 +302,71 @@ public sealed class TimeClockServiceTests
         status.Status.Should().Be("Working");
         status.ActiveWorkLogId.Should().NotBeNull();
         status.WorkedMinutesToday.Should().Be(120);
+        status.WorkedSecondsToday.Should().Be(7_200);
+        status.BreakSecondsToday.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Status_reports_exact_live_seconds_during_a_break()
+    {
+        await using var fixture = await TestFixture.CreateAsync(
+            now: new DateTimeOffset(2026, 7, 30, 10, 0, 30, TimeSpan.Zero));
+        await fixture.Service.ClockInAsync(
+            "2026-07-30T16:00:00+08:00", CancellationToken.None);
+        await fixture.Service.StartBreakAsync(
+            "2026-07-30T17:00:10+08:00", CancellationToken.None);
+
+        var status = await fixture.Service.GetStatusAsync(null, CancellationToken.None);
+
+        status.Status.Should().Be("OnBreak");
+        status.WorkedSecondsToday.Should().Be(3_610);
+        status.BreakSecondsToday.Should().Be(3_620);
+    }
+
+    [Fact]
+    public async Task Status_clips_an_active_work_session_to_the_current_local_day()
+    {
+        await using var fixture = await TestFixture.CreateAsync(
+            now: new DateTimeOffset(2026, 7, 30, 16, 0, 30, TimeSpan.Zero));
+        await fixture.Service.ClockInAsync(
+            "2026-07-30T23:59:50+08:00", CancellationToken.None);
+
+        var status = await fixture.Service.GetStatusAsync(null, CancellationToken.None);
+
+        status.Status.Should().Be("Working");
+        status.WorkedSecondsToday.Should().Be(30);
+        status.BreakSecondsToday.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task Status_clips_an_active_break_to_the_current_local_day()
+    {
+        await using var fixture = await TestFixture.CreateAsync(
+            now: new DateTimeOffset(2026, 7, 30, 16, 0, 30, TimeSpan.Zero));
+        await fixture.Service.ClockInAsync(
+            "2026-07-30T23:59:40+08:00", CancellationToken.None);
+        await fixture.Service.StartBreakAsync(
+            "2026-07-30T23:59:55+08:00", CancellationToken.None);
+
+        var status = await fixture.Service.GetStatusAsync(null, CancellationToken.None);
+
+        status.Status.Should().Be("OnBreak");
+        status.WorkedSecondsToday.Should().Be(0);
+        status.BreakSecondsToday.Should().Be(30);
+    }
+
+    [Fact]
+    public async Task Status_floors_seconds_after_aggregating_all_sessions()
+    {
+        await using var fixture = await TestFixture.CreateAsync();
+        fixture.Db.TimeLogs.AddRange(
+            CompletedWork(fixture.User.Id, 8, 0, 0, 100, 8, 0, 1, 700),
+            CompletedWork(fixture.User.Id, 9, 0, 0, 100, 9, 0, 1, 700));
+        await fixture.Db.SaveChangesAsync(TestContext.Current.CancellationToken);
+
+        var status = await fixture.Service.GetStatusAsync(null, CancellationToken.None);
+
+        status.WorkedSecondsToday.Should().Be(3);
     }
 
     [Fact]
@@ -314,6 +379,29 @@ public sealed class TimeClockServiceTests
         action.Should().Throw<ValidationException>()
             .Which.Code.Should().Be("OFFSET_REQUIRED");
     }
+
+    private static TimeLog CompletedWork(
+        int userId,
+        int startHour,
+        int startMinute,
+        int startSecond,
+        int startMillisecond,
+        int endHour,
+        int endMinute,
+        int endSecond,
+        int endMillisecond) =>
+        new()
+        {
+            UserId = userId,
+            ShiftDate = new DateTime(2026, 7, 30),
+            Start = new DateTime(
+                2026, 7, 30, startHour, startMinute, startSecond, startMillisecond, DateTimeKind.Utc),
+            End = new DateTime(
+                2026, 7, 30, endHour, endMinute, endSecond, endMillisecond, DateTimeKind.Utc),
+            Type = TimeLogType.Work,
+            Timezone = "Asia/Manila",
+            CreatedAt = new DateTime(2026, 7, 30, startHour, startMinute, startSecond, DateTimeKind.Utc)
+        };
 
     private sealed class TestFixture : IAsyncDisposable
     {

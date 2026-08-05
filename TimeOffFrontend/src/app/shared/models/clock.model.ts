@@ -1,20 +1,10 @@
-export type ClockStatus =
-  | 'ClockedOut'
-  | 'Working'
-  | 'OnBreak';
+export type ClockStatus = 'ClockedOut' | 'Working' | 'OnBreak';
 
-export type ClockAction =
-  | 'clockIn'
-  | 'startBreak'
-  | 'endBreak'
-  | 'clockOut';
+export type ClockAction = 'clockIn' | 'startBreak' | 'endBreak' | 'clockOut';
 
 export type TimeLogType = 'Work' | 'Break';
 
-export type TimeLogStatus =
-  | 'Working'
-  | 'OnBreak'
-  | 'Completed';
+export type TimeLogStatus = 'Working' | 'OnBreak' | 'Completed';
 
 export interface ClockActionRequest {
   dateTime: string;
@@ -37,6 +27,10 @@ export interface ClockStatusResponse {
   activeBreakLogId?: number;
   clockedInAt?: string;
   breakStartedAt?: string;
+  asOf: string;
+  currentDayEndsAt: string;
   workedMinutesToday: number;
   breakMinutesToday: number;
+  workedSecondsToday: number;
+  breakSecondsToday: number;
 }

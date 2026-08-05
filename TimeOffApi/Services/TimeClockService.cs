@@ -122,19 +122,25 @@ public sealed class TimeClockService(
         var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == userId, cancellationToken)
             ?? throw new NotFoundException("USER_NOT_FOUND", "User was not found.");
         var now = timeProvider.GetUtcNow().UtcDateTime;
-        var today = DateTimeHelper.LocalDate(now, user.Timezone);
+        var (dayStart, dayEnd) = DateTimeHelper.UtcDayBounds(now, user.Timezone);
         var works = await db.TimeLogs.AsNoTracking()
-            .Include(x => x.User)
             .Include(x => x.Breaks)
             .Where(x => x.UserId == userId && x.Type == TimeLogType.Work
-                && !x.IsDeleted && x.ShiftDate == today)
+                && !x.IsDeleted && x.Start < dayEnd
+                && (x.End == null || x.End > dayStart))
             .ToListAsync(cancellationToken);
         var activeWork = await db.TimeLogs.AsNoTracking()
             .Include(x => x.Breaks)
             .SingleOrDefaultAsync(x => x.UserId == userId && x.Type == TimeLogType.Work
                 && !x.IsDeleted && x.End == null, cancellationToken);
         var activeBreak = activeWork?.Breaks.SingleOrDefault(x => !x.IsDeleted && x.End == null);
-        var sessions = works.Select(x => TimeLogMapper.ToWorkSession(x, now)).ToList();
+        var exactDurations = works
+            .Select(x => TimeLogMapper.ToDurationsWithin(x, now, dayStart, dayEnd))
+            .ToList();
+        var workedDuration = exactDurations.Aggregate(
+            TimeSpan.Zero, (total, duration) => total + duration.Worked);
+        var breakDuration = exactDurations.Aggregate(
+            TimeSpan.Zero, (total, duration) => total + duration.Break);
 
         return new(
             activeBreak is not null ? "OnBreak" : activeWork is not null ? "Working" : "ClockedOut",
@@ -142,8 +148,12 @@ public sealed class TimeClockService(
             activeBreak?.Id,
             activeWork is null ? null : TimeLogMapper.Utc(activeWork.Start),
             activeBreak is null ? null : TimeLogMapper.Utc(activeBreak.Start),
-            sessions.Sum(x => x.TotalWorkedMinutes),
-            sessions.Sum(x => x.TotalBreakMinutes));
+            now,
+            dayEnd,
+            DateTimeHelper.Minutes(workedDuration),
+            DateTimeHelper.Minutes(breakDuration),
+            DateTimeHelper.Seconds(workedDuration),
+            DateTimeHelper.Seconds(breakDuration));
     }
 
     private async Task<TimeLog?> ActiveWorkAsync(int userId, CancellationToken cancellationToken) =>

@@ -30,5 +30,9 @@ public sealed record ClockStatusResponse(
     int? ActiveBreakLogId,
     DateTime? ClockedInAt,
     DateTime? BreakStartedAt,
+    DateTime AsOf,
+    DateTime CurrentDayEndsAt,
     int WorkedMinutesToday,
-    int BreakMinutesToday);
+    int BreakMinutesToday,
+    int WorkedSecondsToday,
+    int BreakSecondsToday);

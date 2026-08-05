@@ -1,3 +1,46 @@
-/* You can add global styles to this file, and also import other style files */
-
 @import 'tailwindcss';
+
+:root {
+  color-scheme: light;
+  --brand: #119754;
+  --brand-dark: #08713e;
+  --brand-deep: #064e2c;
+  --brand-soft: #eaf7f0;
+  --brand-softer: #f6fbf8;
+  --surface: #ffffff;
+  --surface-muted: #f7faf8;
+  --border: #dce8e1;
+  --focus-ring: #8ed2af;
+}
+
+html {
+  min-width: 320px;
+  background: var(--surface-muted);
+}
+
+body {
+  min-width: 320px;
+  min-height: 100vh;
+  margin: 0;
+  background: var(--surface-muted);
+  color: #17251e;
+  font-family:
+    Inter,
+    ui-sans-serif,
+    system-ui,
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+::selection {
+  background: #c9ead9;
+  color: var(--brand-deep);
+}

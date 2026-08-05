@@ -1,16 +1,18 @@
-<section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+<section
+  class="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_18px_45px_-34px_rgba(6,78,44,0.4)]"
+>
   <header
-    class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-6 py-5"
+    class="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] bg-gradient-to-r from-[var(--brand-softer)] to-white px-6 py-5"
   >
     <div>
-      <p class="text-sm font-semibold uppercase tracking-wider text-blue-600">History</p>
+      <p class="text-sm font-semibold uppercase tracking-wider text-[var(--brand-dark)]">History</p>
 
       <h2 class="mt-1 text-xl font-bold text-slate-900">Time Logs</h2>
     </div>
 
     <button
       type="button"
-      class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+      class="rounded-xl border border-[var(--brand)] bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
       [disabled]="isLoading()"
       (click)="refreshRequested.emit()"
     >
@@ -33,7 +35,7 @@
 
       <button
         type="button"
-        class="text-sm font-semibold text-red-700 underline"
+        class="rounded-md text-sm font-semibold text-red-700 underline focus:outline-none focus:ring-4 focus:ring-red-100"
         (click)="refreshRequested.emit()"
       >
         Retry
@@ -59,64 +61,64 @@
             Employee work sessions and breaks
           </caption>
 
-          <thead class="bg-slate-50">
-            <tr class="border-b border-slate-200">
+          <thead class="bg-[var(--brand-soft)]">
+            <tr class="border-b border-[var(--border)]">
               <th scope="col" class="w-12 px-3 py-3">
                 <span class="sr-only">Expand</span>
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Day
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Date
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Type
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Clock In
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Clock Out
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Duration
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Break Time
               </th>
 
               <th
                 scope="col"
-                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
               >
                 Status
               </th>
@@ -125,12 +127,14 @@
 
           <tbody>
             @for (session of response.items; track session.id) {
-              <tr class="border-b border-slate-100">
+              <tr
+                class="border-b border-slate-100 transition-colors hover:bg-[var(--brand-softer)]"
+              >
                 <td class="px-3 py-4">
                   @if (session.breaks.length > 0) {
                     <button
                       type="button"
-                      class="flex size-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100"
+                      class="flex size-8 items-center justify-center rounded-lg font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]"
                       [attr.aria-expanded]="isExpanded(session.id)"
                       [attr.aria-label]="isExpanded(session.id) ? 'Hide breaks' : 'Show breaks'"
                       [attr.data-expand-session]="session.id"
@@ -174,8 +178,12 @@
                 <td class="whitespace-nowrap px-3 py-4">
                   @if (session.status === 'Active') {
                     <span
-                      class="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700"
+                      class="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-[var(--brand-soft)] px-2.5 py-1 text-xs font-semibold text-[var(--brand-dark)]"
                     >
+                      <span
+                        aria-hidden="true"
+                        class="size-1.5 rounded-full bg-[var(--brand)]"
+                      ></span>
                       Active
                     </span>
                   } @else {
@@ -190,7 +198,7 @@
 
               @if (isExpanded(session.id)) {
                 @for (breakItem of session.breaks; track breakItem.id) {
-                  <tr data-break-row class="border-b border-slate-100 bg-amber-50/50">
+                  <tr data-break-row class="border-b border-amber-100 bg-amber-50/60">
                     <td class="px-3 py-3"></td>
                     <td class="px-3 py-3"></td>
                     <td class="px-3 py-3"></td>
@@ -227,7 +235,7 @@
       </div>
 
       <footer
-        class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 px-6 py-4"
+        class="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--border)] bg-slate-50/50 px-6 py-4"
       >
         <p class="text-sm text-slate-600">
           Page {{ response.page }} of {{ response.totalPages }} | {{ response.totalCount }} sessions
@@ -237,7 +245,7 @@
           <button
             type="button"
             data-page-action="previous"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+            class="rounded-xl border border-[var(--brand)] bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
             [disabled]="response.page <= 1 || isLoading()"
             (click)="requestPreviousPage()"
           >
@@ -247,7 +255,7 @@
           <button
             type="button"
             data-page-action="next"
-            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+            class="rounded-xl border border-[var(--brand)] bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
             [disabled]="response.page >= response.totalPages || isLoading()"
             (click)="requestNextPage()"
           >

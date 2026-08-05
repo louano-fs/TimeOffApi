@@ -25,8 +25,12 @@ describe('DashboardPage', () => {
 
   const clockedOutStatus: ClockStatusResponse = {
     status: 'ClockedOut',
+    asOf: '2026-08-05T01:00:00Z',
+    currentDayEndsAt: '2026-08-05T16:00:00Z',
     workedMinutesToday: 480,
     breakMinutesToday: 60,
+    workedSecondsToday: 28_800,
+    breakSecondsToday: 3_600,
   };
 
   const timeLogs: PagedResponse<WorkSessionResponse> = {
