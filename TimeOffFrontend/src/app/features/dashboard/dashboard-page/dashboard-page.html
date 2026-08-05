@@ -1,0 +1,47 @@
+<main class="min-h-screen bg-slate-100 px-4 py-8 sm:px-6">
+  <div class="mx-auto max-w-6xl">
+    @if (!authService.isAuthenticated()) {
+      <div class="py-10">
+        <app-login-panel
+          [isSubmitting]="isLoggingIn()"
+          [errorMessage]="loginError()"
+          (loginSubmitted)="login($event)"
+        />
+      </div>
+    } @else {
+      <header class="flex flex-col gap-4 border-b border-slate-200 pb-6 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wider text-blue-600">
+            Employee Portal
+          </p>
+
+          <h1 class="mt-2 text-3xl font-bold text-slate-900">
+            Welcome, {{ authService.session()?.firstName }}
+          </h1>
+
+          <p class="mt-1 text-slate-600">
+            Employee #{{ authService.session()?.employeeNumber }}
+          </p>
+        </div>
+
+        <button
+          type="button"
+          class="self-start rounded-lg border border-slate-300 bg-white px-4 py-2 font-medium text-slate-700 transition hover:bg-slate-50"
+          (click)="logout()"
+        >
+          Log out
+        </button>
+      </header>
+
+      <section class="mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-xl font-semibold text-slate-900">
+          Authentication complete
+        </h2>
+
+        <p class="mt-2 text-slate-600">
+          Your clock controls will appear here next.
+        </p>
+      </section>
+    }
+  </div>
+</main>
