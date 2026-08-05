@@ -1,0 +1,262 @@
+<section class="rounded-2xl border border-slate-200 bg-white shadow-sm">
+  <header
+    class="flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 px-6 py-5"
+  >
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-wider text-blue-600">History</p>
+
+      <h2 class="mt-1 text-xl font-bold text-slate-900">Time Logs</h2>
+    </div>
+
+    <button
+      type="button"
+      class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+      [disabled]="isLoading()"
+      (click)="refreshRequested.emit()"
+    >
+      @if (isLoading() && timeLogs()) {
+        Refreshing...
+      } @else {
+        Refresh
+      }
+    </button>
+  </header>
+
+  @if (errorMessage()) {
+    <div
+      role="alert"
+      class="mx-6 mt-5 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3"
+    >
+      <p class="text-sm text-red-700">
+        {{ errorMessage() }}
+      </p>
+
+      <button
+        type="button"
+        class="text-sm font-semibold text-red-700 underline"
+        (click)="refreshRequested.emit()"
+      >
+        Retry
+      </button>
+    </div>
+  }
+
+  @if (isLoading() && !timeLogs()) {
+    <div role="status" class="px-6 py-12 text-center text-slate-600">Loading time logs...</div>
+  } @else if (timeLogs(); as response) {
+    @if (response.items.length === 0) {
+      <div class="px-6 py-12 text-center">
+        <p class="font-medium text-slate-900">No time logs yet</p>
+
+        <p class="mt-1 text-sm text-slate-600">
+          Your completed and active work sessions will appear here.
+        </p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse text-left">
+          <caption class="sr-only">
+            Employee work sessions and breaks
+          </caption>
+
+          <thead class="bg-slate-50">
+            <tr class="border-b border-slate-200">
+              <th scope="col" class="w-12 px-3 py-3">
+                <span class="sr-only">Expand</span>
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Day
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Date
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Type
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Clock In
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Clock Out
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Duration
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Break Time
+              </th>
+
+              <th
+                scope="col"
+                class="whitespace-nowrap px-3 py-3 text-xs font-semibold uppercase tracking-wide text-slate-600"
+              >
+                Status
+              </th>
+            </tr>
+          </thead>
+
+          <tbody>
+            @for (session of response.items; track session.id) {
+              <tr class="border-b border-slate-100">
+                <td class="px-3 py-4">
+                  @if (session.breaks.length > 0) {
+                    <button
+                      type="button"
+                      class="flex size-8 items-center justify-center rounded-md text-slate-600 transition hover:bg-slate-100"
+                      [attr.aria-expanded]="isExpanded(session.id)"
+                      [attr.aria-label]="isExpanded(session.id) ? 'Hide breaks' : 'Show breaks'"
+                      [attr.data-expand-session]="session.id"
+                      (click)="toggleSession(session.id)"
+                    >
+                      @if (isExpanded(session.id)) {
+                        -
+                      } @else {
+                        +
+                      }
+                    </button>
+                  }
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 font-medium text-slate-900">
+                  {{ session.shiftDate | shiftDate: 'day' }}
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 text-slate-700">
+                  {{ session.shiftDate | shiftDate: 'date' }}
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 text-slate-700">Work</td>
+
+                <td class="whitespace-nowrap px-3 py-4 text-slate-700">
+                  {{ session.start | sessionTime: session.timezone }}
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 text-slate-700">
+                  {{ session.end | sessionTime: session.timezone }}
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 font-medium text-slate-900">
+                  {{ session.totalWorkedMinutes | duration }}
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4 text-slate-700">
+                  {{ session.totalBreakMinutes | duration }}
+                </td>
+
+                <td class="whitespace-nowrap px-3 py-4">
+                  @if (session.status === 'Active') {
+                    <span
+                      class="rounded-full bg-green-100 px-2.5 py-1 text-xs font-semibold text-green-700"
+                    >
+                      Active
+                    </span>
+                  } @else {
+                    <span
+                      class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700"
+                    >
+                      Completed
+                    </span>
+                  }
+                </td>
+              </tr>
+
+              @if (isExpanded(session.id)) {
+                @for (breakItem of session.breaks; track breakItem.id) {
+                  <tr data-break-row class="border-b border-slate-100 bg-amber-50/50">
+                    <td class="px-3 py-3"></td>
+                    <td class="px-3 py-3"></td>
+                    <td class="px-3 py-3"></td>
+
+                    <td class="whitespace-nowrap px-3 py-3 font-medium text-amber-800">Break</td>
+
+                    <td class="whitespace-nowrap px-3 py-3 text-slate-700">
+                      {{ breakItem.start | sessionTime: session.timezone }}
+                    </td>
+
+                    <td class="whitespace-nowrap px-3 py-3 text-slate-700">
+                      {{ breakItem.end | sessionTime: session.timezone }}
+                    </td>
+
+                    <td class="whitespace-nowrap px-3 py-3 text-slate-700">
+                      {{ breakItem.durationMinutes | duration }}
+                    </td>
+
+                    <td class="px-3 py-3 text-slate-500">N/A</td>
+
+                    <td class="whitespace-nowrap px-3 py-3">
+                      @if (breakItem.end) {
+                        <span class="text-sm text-slate-600"> Completed </span>
+                      } @else {
+                        <span class="text-sm font-medium text-amber-700"> In progress </span>
+                      }
+                    </td>
+                  </tr>
+                }
+              }
+            }
+          </tbody>
+        </table>
+      </div>
+
+      <footer
+        class="flex flex-wrap items-center justify-between gap-4 border-t border-slate-200 px-6 py-4"
+      >
+        <p class="text-sm text-slate-600">
+          Page {{ response.page }} of {{ response.totalPages }} | {{ response.totalCount }} sessions
+        </p>
+
+        <div class="flex gap-2">
+          <button
+            type="button"
+            data-page-action="previous"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+            [disabled]="response.page <= 1 || isLoading()"
+            (click)="requestPreviousPage()"
+          >
+            Previous
+          </button>
+
+          <button
+            type="button"
+            data-page-action="next"
+            class="rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:text-slate-400"
+            [disabled]="response.page >= response.totalPages || isLoading()"
+            (click)="requestNextPage()"
+          >
+            Next
+          </button>
+        </div>
+      </footer>
+    }
+  } @else if (!errorMessage()) {
+    <div class="px-6 py-12 text-center text-slate-600">Time logs are unavailable.</div>
+  }
+</section>
