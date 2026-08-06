@@ -11,7 +11,8 @@ namespace TimeOffApi.Controllers;
 [Authorize]
 public sealed class TimeLogsController(
     ITimeLogService service,
-    ITimeReportingService reporting) : ControllerBase
+    ITimeReportingService reporting,
+    ITimeLogExportService exports) : ControllerBase
 {
     [HttpGet]
     public async Task<PagedResponse<WorkSessionResponse>> Get(
@@ -45,5 +46,16 @@ public sealed class TimeLogsController(
     {
         await validator.ValidateOrThrowAsync(query, cancellationToken);
         return await reporting.GetPersonalAsync(query, cancellationToken);
+    }
+
+    [HttpGet("export")]
+    public async Task<FileContentResult> Export(
+        [FromQuery] TimeLogExportQuery query,
+        [FromServices] IValidator<TimeLogExportQuery> validator,
+        CancellationToken cancellationToken)
+    {
+        await validator.ValidateOrThrowAsync(query, cancellationToken);
+        var file = await exports.ExportPersonalAsync(query, cancellationToken);
+        return File(file.Contents, file.ContentType, file.FileName);
     }
 }

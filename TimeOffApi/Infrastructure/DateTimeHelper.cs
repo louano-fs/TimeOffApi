@@ -24,8 +24,13 @@ public static partial class DateTimeHelper
 
     public static DateTime LocalDate(DateTime utc, string timeZoneId)
     {
+        return LocalDateTime(utc, timeZoneId).Date;
+    }
+
+    public static DateTime LocalDateTime(DateTime utc, string timeZoneId)
+    {
         var zone = FindTimeZone(timeZoneId);
-        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone).Date;
+        return TimeZoneInfo.ConvertTimeFromUtc(DateTime.SpecifyKind(utc, DateTimeKind.Utc), zone);
     }
 
     public static (DateTime Start, DateTime End) UtcDayBounds(DateTime utc, string timeZoneId)
@@ -49,6 +54,8 @@ public static partial class DateTimeHelper
     {
         if (startDate > endDate)
             throw new ValidationException("INVALID_DATE_RANGE", "Start date must not be after end date.");
+        if (startDate == DateOnly.MinValue)
+            throw new ValidationException("INVALID_DATE_RANGE", "Start date is outside the supported range.");
         if (endDate == DateOnly.MaxValue)
             throw new ValidationException("INVALID_DATE_RANGE", "End date is outside the supported range.");
 
