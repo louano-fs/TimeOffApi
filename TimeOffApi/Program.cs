@@ -68,6 +68,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITimeClockService, TimeClockService>();
 builder.Services.AddScoped<ITimeLogService, TimeLogService>();
+builder.Services.AddScoped<ITimeReportingService, TimeReportingService>();
 builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ITimeOffRequestRepository, TimeOffRequestRepository>();
 builder.Services.AddScoped<ITimeOffRequestService, TimeOffRequestService>();

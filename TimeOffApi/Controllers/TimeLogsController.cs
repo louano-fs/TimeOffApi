@@ -9,7 +9,9 @@ namespace TimeOffApi.Controllers;
 [ApiController]
 [Route("api/time-logs")]
 [Authorize]
-public sealed class TimeLogsController(ITimeLogService service) : ControllerBase
+public sealed class TimeLogsController(
+    ITimeLogService service,
+    ITimeReportingService reporting) : ControllerBase
 {
     [HttpGet]
     public async Task<PagedResponse<WorkSessionResponse>> Get(
@@ -33,5 +35,15 @@ public sealed class TimeLogsController(ITimeLogService service) : ControllerBase
     {
         await validator.ValidateOrThrowAsync(query, cancellationToken);
         return await service.GetSummaryAsync(query, cancellationToken);
+    }
+
+    [HttpGet("report")]
+    public async Task<PersonalTimeReportResponse> Report(
+        [FromQuery] TimeReportQuery query,
+        [FromServices] IValidator<TimeReportQuery> validator,
+        CancellationToken cancellationToken)
+    {
+        await validator.ValidateOrThrowAsync(query, cancellationToken);
+        return await reporting.GetPersonalAsync(query, cancellationToken);
     }
 }
