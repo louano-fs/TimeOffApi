@@ -12,6 +12,8 @@ public interface ITimeLogService
         TimeLogQuery query, CancellationToken cancellationToken);
     Task<PagedResponse<WorkSessionResponse>> GetAdminAsync(
         AdminTimeLogQuery query, CancellationToken cancellationToken);
+    Task<PagedResponse<WorkSessionResponse>> GetTeamMemberAsync(
+        int userId, TimeLogQuery query, CancellationToken cancellationToken);
     Task<WorkSessionResponse> GetMineByIdAsync(int id, CancellationToken cancellationToken);
     Task<TimeSummaryResponse> GetSummaryAsync(
         SummaryQuery query, CancellationToken cancellationToken);
@@ -38,6 +40,24 @@ public sealed class TimeLogService(
         if (query.EmployeeId.HasValue)
             source = source.Where(x => x.User.EmployeeId == query.EmployeeId);
         return GetPagedAsync(source, query, cancellationToken);
+    }
+
+    public async Task<PagedResponse<WorkSessionResponse>> GetTeamMemberAsync(
+        int userId,
+        TimeLogQuery query,
+        CancellationToken cancellationToken)
+    {
+        var isDirectReport = await db.Users.AsNoTracking()
+            .AnyAsync(x => x.Id == userId
+                && x.ManagerId == currentUser.UserId
+                && x.Role == UserRole.Employee, cancellationToken);
+        if (!isDirectReport)
+            throw new NotFoundException("TEAM_MEMBER_NOT_FOUND", "Team member was not found.");
+
+        return await GetPagedAsync(
+            db.TimeLogs.Where(x => x.UserId == userId),
+            query,
+            cancellationToken);
     }
 
     public async Task<WorkSessionResponse> GetMineByIdAsync(

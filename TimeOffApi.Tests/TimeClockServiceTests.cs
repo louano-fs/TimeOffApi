@@ -171,8 +171,7 @@ public sealed class TimeClockServiceTests
     {
         await using var fixture = await TestFixture.CreateAsync();
 
-        // Manager assignment is intentionally not part of the User model, so no manager
-        // data is configured for this employee before exercising both clock actions.
+        // An employee can continue clocking time before a manager is assigned.
         var clockIn = await fixture.Service.ClockInAsync(
             "2026-07-30T08:00:00+08:00", CancellationToken.None);
         var clockOut = await fixture.Service.ClockOutAsync(

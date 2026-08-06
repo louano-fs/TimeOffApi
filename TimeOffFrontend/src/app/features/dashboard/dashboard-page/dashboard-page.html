@@ -56,7 +56,9 @@
 
         <div class="flex items-center justify-between gap-4 md:justify-end">
           <div class="border-l border-white/25 pl-4 md:text-right">
-            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-100">Employee</p>
+            <p class="text-xs font-semibold uppercase tracking-wider text-emerald-100">
+              {{ authService.session()?.role }}
+            </p>
             <p class="mt-0.5 font-mono text-sm font-bold tracking-wide text-white">
               #{{ authService.session()?.employeeNumber }}
             </p>
@@ -96,6 +98,15 @@
               (refreshRequested)="loadTimeLogs(currentTimeLogsPage(), true)"
             />
           </section>
+
+          @if (isManager()) {
+            <app-team-section
+              [members]="teamMembers()"
+              [isMembersLoading]="isTeamMembersLoading()"
+              [membersError]="teamMembersError()"
+              (membersRefreshRequested)="loadTeamMembers(true)"
+            />
+          }
         </div>
       </div>
     </div>

@@ -2,6 +2,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
+  computed,
   DestroyRef,
   effect,
   inject,
@@ -14,6 +15,7 @@ import { finalize, Observable, Subscription, timer } from 'rxjs';
 import { ApiError } from '../../../core/api/api-error.model';
 import { TimeClockApiService } from '../../../core/api/time-clock-api.service';
 import { TimeLogsApiService } from '../../../core/api/time-logs-api.service';
+import { TeamApiService } from '../../../core/api/team-api.service';
 import { LoginRequest } from '../../../core/auth/auth.model';
 import { AuthService } from '../../../core/auth/auth.service';
 import {
@@ -22,13 +24,15 @@ import {
   TimeLogResponse,
 } from '../../../shared/models/clock.model';
 import { PagedResponse, WorkSessionResponse } from '../../../shared/models/time-log.model';
+import { TeamMember } from '../../../shared/models/team.model';
 import { LoginPanel } from '../../login/login-panel/login-panel';
 import { ClockCard } from '../../time-clock/clock-card/clock-card';
 import { TimeLogTable } from '../../time-logs/time-log-table/time-log-table';
+import { TeamSection } from '../../team/team-section/team-section';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [LoginPanel, ClockCard, TimeLogTable],
+  imports: [LoginPanel, ClockCard, TimeLogTable, TeamSection],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -38,6 +42,7 @@ export class DashboardPage {
 
   private readonly clockApi = inject(TimeClockApiService);
   private readonly timeLogsApi = inject(TimeLogsApiService);
+  private readonly teamApi = inject(TeamApiService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly isLoggingIn = signal(false);
@@ -53,10 +58,16 @@ export class DashboardPage {
   protected readonly timeLogsError = signal<string | null>(null);
   protected readonly currentTimeLogsPage = signal(1);
 
+  protected readonly isManager = computed(() => this.authService.session()?.role === 'Manager');
+  protected readonly teamMembers = signal<readonly TeamMember[] | null>(null);
+  protected readonly isTeamMembersLoading = signal(false);
+  protected readonly teamMembersError = signal<string | null>(null);
+
   private statusTimer: Subscription | null = null;
   private statusRequest: Subscription | null = null;
   private clockActionRequest: Subscription | null = null;
   private timeLogsRequest: Subscription | null = null;
+  private teamMembersRequest: Subscription | null = null;
 
   constructor() {
     effect(() => {
@@ -76,6 +87,7 @@ export class DashboardPage {
       this.cancelStatusRequest();
       this.cancelClockActionRequest();
       this.cancelTimeLogsRequest();
+      this.cancelTeamMembersRequest();
     });
   }
 
@@ -182,6 +194,34 @@ export class DashboardPage {
       });
   }
 
+  protected loadTeamMembers(force = false): void {
+    if (!this.isManager()) {
+      return;
+    }
+
+    if (this.isTeamMembersLoading()) {
+      if (!force) {
+        return;
+      }
+
+      this.cancelTeamMembersRequest();
+    }
+
+    this.isTeamMembersLoading.set(true);
+    this.teamMembersRequest = this.teamApi
+      .getMembers()
+      .pipe(finalize(() => this.isTeamMembersLoading.set(false)))
+      .subscribe({
+        next: (members) => {
+          this.teamMembers.set(members);
+          this.teamMembersError.set(null);
+        },
+        error: (error: unknown) => {
+          this.teamMembersError.set(this.getErrorMessage(error, 'Unable to load your team.'));
+        },
+      });
+  }
+
   private createActionRequest(action: ClockAction, dateTime: string): Observable<TimeLogResponse> {
     switch (action) {
       case 'clockIn':
@@ -198,6 +238,9 @@ export class DashboardPage {
   private startAuthenticatedDashboard(): void {
     this.startStatusRefresh();
     this.loadTimeLogs(1, true);
+    if (this.isManager()) {
+      this.loadTeamMembers(true);
+    }
   }
 
   private refreshDashboardData(): void {
@@ -237,6 +280,12 @@ export class DashboardPage {
     this.isTimeLogsLoading.set(false);
   }
 
+  private cancelTeamMembersRequest(): void {
+    this.teamMembersRequest?.unsubscribe();
+    this.teamMembersRequest = null;
+    this.isTeamMembersLoading.set(false);
+  }
+
   private resetClockState(): void {
     this.stopStatusRefresh();
     this.cancelStatusRequest();
@@ -254,9 +303,16 @@ export class DashboardPage {
     this.currentTimeLogsPage.set(1);
   }
 
+  private resetTeamState(): void {
+    this.cancelTeamMembersRequest();
+    this.teamMembers.set(null);
+    this.teamMembersError.set(null);
+  }
+
   private resetDashboardState(): void {
     this.resetClockState();
     this.resetTimeLogState();
+    this.resetTeamState();
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {

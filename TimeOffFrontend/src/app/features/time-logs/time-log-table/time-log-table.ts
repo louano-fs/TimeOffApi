@@ -14,6 +14,10 @@ import { ShiftDatePipe } from '../../../shared/pipes/shift-date-pipe';
 })
 export class TimeLogTable {
   readonly timeLogs = input<PagedResponse<WorkSessionResponse> | null>(null);
+  readonly eyebrow = input('History');
+  readonly title = input('Time Logs');
+  readonly emptyMessage = input('Your completed and active work sessions will appear here.');
+  readonly caption = input('Employee work sessions and breaks');
 
   readonly isLoading = input(false);
   readonly errorMessage = input<string | null>(null);

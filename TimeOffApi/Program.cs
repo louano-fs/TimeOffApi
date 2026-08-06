@@ -68,6 +68,7 @@ builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITimeClockService, TimeClockService>();
 builder.Services.AddScoped<ITimeLogService, TimeLogService>();
+builder.Services.AddScoped<ITeamService, TeamService>();
 builder.Services.AddScoped<ITimeOffRequestRepository, TimeOffRequestRepository>();
 builder.Services.AddScoped<ITimeOffRequestService, TimeOffRequestService>();
 builder.Services.AddScoped<IPasswordHasher<User>, PasswordHasher<User>>();
@@ -147,6 +148,7 @@ await using (var scope = app.Services.CreateAsyncScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     await db.Database.EnsureCreatedAsync();
+    await DatabaseSchemaInitializer.EnsureManagerSchemaAsync(db);
     await BootstrapAdmin.SeedAsync(scope.ServiceProvider, app.Configuration);
     await DevelopmentDataSeeder.SeedAsync(
         scope.ServiceProvider, app.Configuration, app.Environment);
