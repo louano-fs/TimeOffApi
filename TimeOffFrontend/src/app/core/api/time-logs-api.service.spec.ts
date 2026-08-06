@@ -1,4 +1,4 @@
-import { provideHttpClient } from '@angular/common/http';
+import { HttpHeaders, provideHttpClient } from '@angular/common/http';
 import {
   HttpTestingController,
   provideHttpClientTesting,
@@ -83,5 +83,34 @@ describe('TimeLogsApiService', () => {
     request.flush(expected);
 
     expect(result).toEqual(expected);
+  });
+
+  it('gets an exact personal report for a date range', () => {
+    service.getReport({ startDate: '2026-08-01', endDate: '2026-08-06' }).subscribe();
+
+    const request = httpTesting.expectOne((candidate) => candidate.url === '/api/time-logs/report');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('startDate')).toBe('2026-08-01');
+    expect(request.request.params.get('endDate')).toBe('2026-08-06');
+    request.flush({});
+  });
+
+  it('downloads a personal workbook using the server filename', () => {
+    let fileName = '';
+    service
+      .downloadExport({ startDate: '2026-08-01', endDate: '2026-08-06' })
+      .subscribe((download) => (fileName = download.fileName));
+
+    const request = httpTesting.expectOne((candidate) => candidate.url === '/api/time-logs/export');
+    expect(request.request.method).toBe('GET');
+    expect(request.request.responseType).toBe('blob');
+    expect(request.request.params.get('format')).toBe('xlsx');
+    request.flush(new Blob(['xlsx']), {
+      headers: new HttpHeaders({
+        'Content-Disposition': 'attachment; filename="my-time-logs-2026-08-01.xlsx"',
+      }),
+    });
+
+    expect(fileName).toBe('my-time-logs-2026-08-01.xlsx');
   });
 });

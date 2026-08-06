@@ -49,6 +49,12 @@ exports may span at most 366 days and contain at most 500 current direct-report
 employees and 50,000 work sessions. Oversized exports fail without returning a
 partial workbook.
 
+The Angular dashboard exposes deterministic Today, This week, This month,
+custom-range, and Excel controls for personal time. Managers also receive
+current-team totals, an exact below-eight-hours snapshot, inactive inclusion,
+custom ranges, and team Excel export. These controls do not require an AI
+provider.
+
 The JWT key in `appsettings.json` is for local development only. Override it in
 deployed environments:
 
