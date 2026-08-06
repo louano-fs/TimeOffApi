@@ -55,6 +55,12 @@ current-team totals, an exact below-eight-hours snapshot, inactive inclusion,
 custom ranges, and team Excel export. These controls do not require an AI
 provider.
 
+The manager-assistant foundation is disabled by default. Authenticated clients
+may call `GET /api/manager-assistant/capabilities`; it reports enabled only when
+the feature is configured and both the JWT role and the current active database
+role are Manager. Keep `ManagerAssistant:Enabled` false until the provider-backed
+message endpoint and sidebar UI are deployed.
+
 The JWT key in `appsettings.json` is for local development only. Override it in
 deployed environments:
 
