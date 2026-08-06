@@ -19,10 +19,9 @@ public interface ITimeReportingService
 public sealed class TimeReportingService(
     AppDbContext db,
     ICurrentUserService currentUser,
-    TimeProvider timeProvider) : ITimeReportingService
+    TimeProvider timeProvider,
+    ITeamTimeReportingService teamReporting) : ITimeReportingService
 {
-    private const int MaxTeamMembers = 200;
-
     public async Task<PersonalTimeReportResponse> GetPersonalAsync(
         TimeReportQuery query,
         CancellationToken cancellationToken)
@@ -59,76 +58,11 @@ public sealed class TimeReportingService(
                 "MANAGER_ACCESS_REQUIRED",
                 "Current manager access is required.");
 
-        var asOf = timeProvider.GetUtcNow().UtcDateTime;
-        var today = DateOnly.FromDateTime(DateTimeHelper.LocalDate(asOf, manager.Timezone));
-        var (startDate, endDate) = ResolveDates(query, today, 92, "Team reports");
-
-        var directReports = db.Users.AsNoTracking()
-            .Where(x => x.ManagerId == manager.Id && x.Role == UserRole.Employee);
-        var excludedInactiveCount = query.IncludeInactive
-            ? 0
-            : await directReports.CountAsync(x => !x.IsActive, cancellationToken);
-        if (!query.IncludeInactive)
-            directReports = directReports.Where(x => x.IsActive);
-
-        var includedMemberCount = await directReports.CountAsync(cancellationToken);
-        if (includedMemberCount > MaxTeamMembers)
-            throw new ValidationException(
-                "TEAM_REPORT_TOO_LARGE",
-                $"Team reports may include at most {MaxTeamMembers} employees.");
-
-        var members = await directReports
-            .OrderBy(x => x.LastName)
-            .ThenBy(x => x.FirstName)
-            .ThenBy(x => x.EmployeeNumber)
-            .Select(x => new TeamMemberIdentity(
-                x.Id,
-                x.EmployeeId,
-                x.EmployeeNumber,
-                x.FirstName,
-                x.LastName,
-                x.IsActive))
-            .ToArrayAsync(cancellationToken);
-        var works = await LoadWorkSessionsAsync(
-            members.Select(x => x.UserId).ToArray(),
-            startDate,
-            endDate,
+        var scope = new ManagerScope(
+            manager.Id,
             manager.Timezone,
-            asOf,
-            cancellationToken);
-
-        var (rangeStart, configuredRangeEnd) = DateTimeHelper.UtcDateRangeBounds(
-            startDate, endDate, manager.Timezone);
-        var rangeEnd = configuredRangeEnd < asOf ? configuredRangeEnd : asOf;
-        var workByUser = works.GroupBy(x => x.UserId).ToDictionary(x => x.Key, x => x.ToArray());
-        var memberReports = members.Select(member =>
-        {
-            var memberWorks = workByUser.GetValueOrDefault(member.UserId) ?? [];
-            var durations = Aggregate(memberWorks, asOf, rangeStart, rangeEnd);
-            return new TeamMemberTimeReportResponse(
-                member.UserId,
-                member.EmployeeId,
-                member.EmployeeNumber,
-                member.FirstName,
-                member.LastName,
-                member.IsActive,
-                DateTimeHelper.Seconds(durations.Worked),
-                DateTimeHelper.Seconds(durations.Break),
-                memberWorks.Length);
-        }).ToArray();
-
-        var totalWorkedSeconds = memberReports.Sum(x => x.WorkedSeconds);
-        return new(
-            startDate,
-            endDate,
-            manager.Timezone,
-            asOf,
-            memberReports.Length,
-            excludedInactiveCount,
-            totalWorkedSeconds,
-            memberReports.Sum(x => x.BreakSeconds),
-            memberReports.Length == 0 ? null : totalWorkedSeconds / (double)memberReports.Length,
-            memberReports);
+            timeProvider.GetUtcNow().UtcDateTime);
+        return await teamReporting.GetAsync(scope, query, cancellationToken);
     }
 
     private async Task<User> GetCurrentUserAsync(CancellationToken cancellationToken) =>
@@ -235,12 +169,4 @@ public sealed class TimeReportingService(
                 return (total.Worked + duration.Worked, total.Break + duration.Break);
             });
     }
-
-    private sealed record TeamMemberIdentity(
-        int UserId,
-        int EmployeeId,
-        string EmployeeNumber,
-        string FirstName,
-        string LastName,
-        bool IsActive);
 }

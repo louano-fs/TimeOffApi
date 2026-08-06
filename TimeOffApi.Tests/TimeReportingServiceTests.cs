@@ -279,7 +279,11 @@ public sealed class TimeReportingServiceTests
         {
             var currentUser = new Mock<ICurrentUserService>();
             currentUser.SetupGet(x => x.UserId).Returns(userId);
-            return new(Db, currentUser.Object, _timeProvider);
+            return new(
+                Db,
+                currentUser.Object,
+                _timeProvider,
+                new TeamTimeReportingService(Db));
         }
 
         public void AddWork(

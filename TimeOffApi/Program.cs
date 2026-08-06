@@ -67,9 +67,19 @@ builder.Services.AddSingleton<IUserLockService, UserLockService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
 builder.Services.AddScoped<IManagerScopeResolver, ManagerScopeResolver>();
 builder.Services.AddScoped<IManagerAssistantCapabilitiesService, ManagerAssistantCapabilitiesService>();
+builder.Services.AddScoped<IDirectReportResolver, DirectReportResolver>();
+builder.Services.AddScoped<IManagerAssistantTeamToolService, ManagerAssistantTeamToolService>();
+builder.Services.AddScoped<IManagerAssistantOrchestrator, ManagerAssistantOrchestrator>();
+builder.Services.AddSingleton<IManagerAssistantRateLimiter, ManagerAssistantRateLimiter>();
+builder.Services.AddSingleton<UnconfiguredAssistantModelClient>();
+builder.Services.AddSingleton<IAssistantModelClient>(services =>
+    services.GetRequiredService<UnconfiguredAssistantModelClient>());
+builder.Services.AddSingleton<IAssistantModelAvailability>(services =>
+    services.GetRequiredService<UnconfiguredAssistantModelClient>());
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITimeClockService, TimeClockService>();
 builder.Services.AddScoped<ITimeLogService, TimeLogService>();
+builder.Services.AddScoped<ITeamTimeReportingService, TeamTimeReportingService>();
 builder.Services.AddScoped<ITimeReportingService, TimeReportingService>();
 builder.Services.AddScoped<ITimeLogExportService, TimeLogExportService>();
 builder.Services.AddSingleton<ITimeLogWorkbookWriter, TimeLogWorkbookWriter>();
