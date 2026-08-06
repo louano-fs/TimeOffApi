@@ -35,11 +35,19 @@ employees with zero time.
 ```text
 GET /api/time-logs/report?startDate=2026-08-01&endDate=2026-08-06
 GET /api/team/report?startDate=2026-08-01&endDate=2026-08-06&includeInactive=false
+GET /api/time-logs/export?startDate=2026-08-01&endDate=2026-08-06&format=xlsx
+GET /api/team/time-logs/export?startDate=2026-08-01&endDate=2026-08-06&includeInactive=false&format=xlsx
 ```
 
 Personal reports may span at most 366 days. Team reports require the Manager
 role and current manager assignment, may span at most 92 days, and may include
 at most 200 employees.
+
+Excel exports apply the same current-user and current-team authorization at
+download time. Personal exports may contain at most 10,000 work sessions. Team
+exports may span at most 366 days and contain at most 500 current direct-report
+employees and 50,000 work sessions. Oversized exports fail without returning a
+partial workbook.
 
 The JWT key in `appsettings.json` is for local development only. Override it in
 deployed environments:

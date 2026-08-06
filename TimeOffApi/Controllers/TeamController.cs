@@ -13,7 +13,8 @@ namespace TimeOffApi.Controllers;
 public sealed class TeamController(
     ITeamService team,
     ITimeLogService timeLogs,
-    ITimeReportingService reporting) : ControllerBase
+    ITimeReportingService reporting,
+    ITimeLogExportService exports) : ControllerBase
 {
     [HttpGet]
     public Task<IReadOnlyCollection<TeamMemberResponse>> Get(
@@ -39,5 +40,16 @@ public sealed class TeamController(
     {
         await validator.ValidateOrThrowAsync(query, cancellationToken);
         return await reporting.GetTeamAsync(query, cancellationToken);
+    }
+
+    [HttpGet("time-logs/export")]
+    public async Task<FileContentResult> Export(
+        [FromQuery] TeamTimeLogExportQuery query,
+        [FromServices] IValidator<TeamTimeLogExportQuery> validator,
+        CancellationToken cancellationToken)
+    {
+        await validator.ValidateOrThrowAsync(query, cancellationToken);
+        var file = await exports.ExportTeamAsync(query, cancellationToken);
+        return File(file.Contents, file.ContentType, file.FileName);
     }
 }

@@ -154,6 +154,8 @@ public sealed class TimeReportingService(
         var endDate = query.EndDate ?? query.StartDate ?? today;
         if (startDate > endDate)
             throw new ValidationException("INVALID_DATE_RANGE", "Start date must not be after end date.");
+        if (startDate == DateOnly.MinValue)
+            throw new ValidationException("INVALID_DATE_RANGE", "Start date is outside the supported range.");
         if (endDate == DateOnly.MaxValue)
             throw new ValidationException("INVALID_DATE_RANGE", "End date is outside the supported range.");
 

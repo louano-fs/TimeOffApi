@@ -29,4 +29,16 @@ public sealed class DateTimeHelperTests
 
         start.Should().Be(new DateTime(2026, 11, 1, 4, 0, 0, DateTimeKind.Utc));
     }
+
+    [Fact]
+    public void UtcDateRangeBounds_rejects_the_minimum_date_before_timezone_conversion()
+    {
+        var action = () => DateTimeHelper.UtcDateRangeBounds(
+            DateOnly.MinValue,
+            DateOnly.MinValue,
+            "Asia/Manila");
+
+        action.Should().Throw<ValidationException>()
+            .Which.Code.Should().Be("INVALID_DATE_RANGE");
+    }
 }

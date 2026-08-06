@@ -27,6 +27,10 @@ public sealed class TimeReportQueryValidator : AbstractValidator<TimeReportQuery
             .NotEqual(DateOnly.MaxValue)
             .When(x => x.EndDate.HasValue)
             .WithMessage("End date is outside the supported range.");
+        RuleFor(x => x.StartDate)
+            .NotEqual(DateOnly.MinValue)
+            .When(x => x.StartDate.HasValue)
+            .WithMessage("Start date is outside the supported range.");
     }
 
     internal static bool HaveValidRange(TimeReportQuery query) =>
@@ -55,6 +59,10 @@ public sealed class TeamTimeReportQueryValidator : AbstractValidator<TeamTimeRep
             .NotEqual(DateOnly.MaxValue)
             .When(x => x.EndDate.HasValue)
             .WithMessage("End date is outside the supported range.");
+        RuleFor(x => x.StartDate)
+            .NotEqual(DateOnly.MinValue)
+            .When(x => x.StartDate.HasValue)
+            .WithMessage("Start date is outside the supported range.");
     }
 }
 
