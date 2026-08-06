@@ -26,6 +26,21 @@ Register an employee with `POST /api/auth/register`, then use
 `POST /api/auth/login` and send the returned token as
 `Authorization: Bearer <token>`.
 
+Exact reports use inclusive local calendar dates and return worked and break
+durations in seconds. With no dates, each endpoint reports the caller's current
+local day. Personal reports use the authenticated user's timezone. Team reports
+use the authenticated manager's timezone and include active direct-report
+employees with zero time.
+
+```text
+GET /api/time-logs/report?startDate=2026-08-01&endDate=2026-08-06
+GET /api/team/report?startDate=2026-08-01&endDate=2026-08-06&includeInactive=false
+```
+
+Personal reports may span at most 366 days. Team reports require the Manager
+role and current manager assignment, may span at most 92 days, and may include
+at most 200 employees.
+
 The JWT key in `appsettings.json` is for local development only. Override it in
 deployed environments:
 

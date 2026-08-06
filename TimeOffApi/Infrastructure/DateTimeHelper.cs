@@ -42,6 +42,29 @@ public static partial class DateTimeHelper
             ResolveLocalBoundary(localDayEnd, zone));
     }
 
+    public static (DateTime Start, DateTime End) UtcDateRangeBounds(
+        DateOnly startDate,
+        DateOnly endDate,
+        string timeZoneId)
+    {
+        if (startDate > endDate)
+            throw new ValidationException("INVALID_DATE_RANGE", "Start date must not be after end date.");
+        if (endDate == DateOnly.MaxValue)
+            throw new ValidationException("INVALID_DATE_RANGE", "End date is outside the supported range.");
+
+        var zone = FindTimeZone(timeZoneId);
+        var localStart = DateTime.SpecifyKind(
+            startDate.ToDateTime(TimeOnly.MinValue),
+            DateTimeKind.Unspecified);
+        var localEnd = DateTime.SpecifyKind(
+            endDate.AddDays(1).ToDateTime(TimeOnly.MinValue),
+            DateTimeKind.Unspecified);
+
+        return (
+            ResolveLocalBoundary(localStart, zone),
+            ResolveLocalBoundary(localEnd, zone));
+    }
+
     public static int Minutes(TimeSpan duration) =>
         Math.Max(0, (int)Math.Floor(duration.TotalMinutes));
 

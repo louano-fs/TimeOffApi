@@ -10,7 +10,10 @@ namespace TimeOffApi.Controllers;
 [ApiController]
 [Route("api/team")]
 [Authorize(Roles = nameof(UserRole.Manager))]
-public sealed class TeamController(ITeamService team, ITimeLogService timeLogs) : ControllerBase
+public sealed class TeamController(
+    ITeamService team,
+    ITimeLogService timeLogs,
+    ITimeReportingService reporting) : ControllerBase
 {
     [HttpGet]
     public Task<IReadOnlyCollection<TeamMemberResponse>> Get(
@@ -26,5 +29,15 @@ public sealed class TeamController(ITeamService team, ITimeLogService timeLogs) 
     {
         await validator.ValidateOrThrowAsync(query, cancellationToken);
         return await timeLogs.GetTeamMemberAsync(userId, query, cancellationToken);
+    }
+
+    [HttpGet("report")]
+    public async Task<TeamTimeReportResponse> Report(
+        [FromQuery] TeamTimeReportQuery query,
+        [FromServices] IValidator<TeamTimeReportQuery> validator,
+        CancellationToken cancellationToken)
+    {
+        await validator.ValidateOrThrowAsync(query, cancellationToken);
+        return await reporting.GetTeamAsync(query, cancellationToken);
     }
 }
