@@ -29,10 +29,11 @@ import { LoginPanel } from '../../login/login-panel/login-panel';
 import { ClockCard } from '../../time-clock/clock-card/clock-card';
 import { TimeLogTable } from '../../time-logs/time-log-table/time-log-table';
 import { TeamSection } from '../../team/team-section/team-section';
+import { TimeInsightsPanel } from '../time-insights-panel/time-insights-panel';
 
 @Component({
   selector: 'app-dashboard-page',
-  imports: [LoginPanel, ClockCard, TimeLogTable, TeamSection],
+  imports: [LoginPanel, ClockCard, TimeLogTable, TeamSection, TimeInsightsPanel],
   templateUrl: './dashboard-page.html',
   styleUrl: './dashboard-page.css',
   changeDetection: ChangeDetectionStrategy.OnPush,

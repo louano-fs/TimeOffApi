@@ -1,0 +1,375 @@
+<div class="space-y-6 sm:space-y-8">
+  <section
+    aria-labelledby="personal-insights-heading"
+    class="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_18px_45px_-34px_rgba(6,78,44,0.4)]"
+  >
+    <header
+      class="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border)] bg-gradient-to-r from-[var(--brand-softer)] to-white px-5 py-5 sm:px-6"
+    >
+      <div>
+        <p class="text-sm font-semibold uppercase tracking-wider text-[var(--brand-dark)]">
+          Exact time report
+        </p>
+        <h2 id="personal-insights-heading" class="mt-1 text-xl font-bold text-slate-900">
+          My time insights
+        </h2>
+        <p class="mt-1 text-sm text-slate-600">Worked time excludes breaks.</p>
+      </div>
+
+      <button
+        type="button"
+        data-personal-export
+        class="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:bg-slate-300"
+        [disabled]="!personalReport() || personalExporting()"
+        (click)="exportPersonal()"
+      >
+        {{ personalExporting() ? 'Preparing Excel...' : 'Export Excel' }}
+      </button>
+    </header>
+
+    <div class="space-y-5 px-5 py-5 sm:px-6">
+      <div class="flex flex-wrap gap-2" aria-label="Personal report period">
+        <button
+          type="button"
+          data-personal-preset="today"
+          class="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+          [disabled]="personalLoading()"
+          (click)="loadPersonalToday()"
+        >
+          Today
+        </button>
+        <button
+          type="button"
+          data-personal-preset="week"
+          class="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+          [disabled]="personalLoading() || !personalReport()"
+          (click)="loadPersonalWeek()"
+        >
+          This week
+        </button>
+        <button
+          type="button"
+          data-personal-preset="month"
+          class="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+          [disabled]="personalLoading() || !personalReport()"
+          (click)="loadPersonalMonth()"
+        >
+          This month
+        </button>
+      </div>
+
+      <div class="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+        <label class="text-sm font-semibold text-slate-700" for="personal-start-date">
+          Start date
+          <input
+            id="personal-start-date"
+            type="date"
+            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-[var(--brand)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]"
+            [value]="personalStartDate()"
+            (input)="updatePersonalStart($event)"
+          />
+        </label>
+        <label class="text-sm font-semibold text-slate-700" for="personal-end-date">
+          End date
+          <input
+            id="personal-end-date"
+            type="date"
+            class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-[var(--brand)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]"
+            [value]="personalEndDate()"
+            (input)="updatePersonalEnd($event)"
+          />
+        </label>
+        <button
+          type="button"
+          data-personal-custom-range
+          class="rounded-lg border border-[var(--brand)] bg-white px-4 py-2 text-sm font-bold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+          [disabled]="personalLoading()"
+          (click)="applyPersonalRange()"
+        >
+          Apply range
+        </button>
+      </div>
+
+      @if (personalError()) {
+        <div
+          role="alert"
+          class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {{ personalError() }}
+        </div>
+      }
+      @if (personalExportError()) {
+        <div
+          role="alert"
+          class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          {{ personalExportError() }}
+        </div>
+      }
+
+      @if (personalLoading() && !personalReport()) {
+        <p role="status" class="py-6 text-center text-slate-600">Loading your time insights...</p>
+      } @else if (personalReport(); as report) {
+        <div class="flex flex-wrap items-baseline justify-between gap-2">
+          <h3 class="font-bold text-slate-900">{{ personalLabel() }}</h3>
+          <p class="text-sm text-slate-600">
+            {{ report.startDate }} to {{ report.endDate }} · {{ report.reportingTimezone }}
+          </p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-3" aria-live="polite">
+          <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-emerald-800">Worked</p>
+            <p class="mt-1 text-2xl font-black text-emerald-950">
+              {{ report.workedSeconds | secondsDuration }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-600">Breaks</p>
+            <p class="mt-1 text-2xl font-black text-slate-900">
+              {{ report.breakSeconds | secondsDuration }}
+            </p>
+          </div>
+          <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+            <p class="text-xs font-bold uppercase tracking-wide text-slate-600">Work sessions</p>
+            <p class="mt-1 text-2xl font-black text-slate-900">{{ report.workSessionCount }}</p>
+          </div>
+        </div>
+        <p class="text-xs text-slate-500">
+          As of {{ formatAsOf(report.asOf, report.reportingTimezone) }}
+        </p>
+      }
+    </div>
+  </section>
+
+  @if (isManager()) {
+    <section
+      aria-labelledby="team-insights-heading"
+      class="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_18px_45px_-34px_rgba(6,78,44,0.4)]"
+    >
+      <header
+        class="flex flex-wrap items-start justify-between gap-4 border-b border-[var(--border)] bg-gradient-to-r from-emerald-50 to-white px-5 py-5 sm:px-6"
+      >
+        <div>
+          <p class="text-sm font-semibold uppercase tracking-wider text-[var(--brand-dark)]">
+            Manager workspace
+          </p>
+          <h2 id="team-insights-heading" class="mt-1 text-xl font-bold text-slate-900">
+            Team time insights
+          </h2>
+          <p class="mt-1 text-sm text-slate-600">Current direct-report employees only.</p>
+        </div>
+        <button
+          type="button"
+          data-team-export
+          class="rounded-xl bg-[var(--brand)] px-4 py-2.5 text-sm font-bold text-white transition hover:bg-[var(--brand-dark)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:bg-slate-300"
+          [disabled]="!teamReport() || teamExporting()"
+          (click)="exportTeam()"
+        >
+          {{ teamExporting() ? 'Preparing Excel...' : 'Export team Excel' }}
+        </button>
+      </header>
+
+      <div class="space-y-5 px-5 py-5 sm:px-6">
+        <div class="flex flex-wrap gap-2" aria-label="Team report period">
+          <button
+            type="button"
+            data-team-preset="today"
+            class="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+            [disabled]="teamLoading()"
+            (click)="loadTeamToday()"
+          >
+            Today
+          </button>
+          <button
+            type="button"
+            data-team-preset="week"
+            class="rounded-lg border border-[var(--border)] px-3.5 py-2 text-sm font-semibold text-slate-700 transition hover:border-[var(--brand)] hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+            [disabled]="teamLoading() || !teamReport()"
+            (click)="loadTeamWeek()"
+          >
+            This week
+          </button>
+          <button
+            type="button"
+            data-team-preset="below-eight"
+            class="rounded-lg border border-amber-300 bg-amber-50 px-3.5 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100 focus:outline-none focus:ring-4 focus:ring-amber-200 disabled:opacity-50"
+            [disabled]="teamLoading() || !teamReport()"
+            (click)="loadBelowEightHoursToday()"
+          >
+            Below 8 hours today
+          </button>
+        </div>
+
+        <div class="grid gap-3 rounded-xl bg-slate-50 p-4 sm:grid-cols-[1fr_1fr_auto] sm:items-end">
+          <label class="text-sm font-semibold text-slate-700" for="team-start-date">
+            Start date
+            <input
+              id="team-start-date"
+              type="date"
+              class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-[var(--brand)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]"
+              [value]="teamStartDate()"
+              (input)="updateTeamStart($event)"
+            />
+          </label>
+          <label class="text-sm font-semibold text-slate-700" for="team-end-date">
+            End date
+            <input
+              id="team-end-date"
+              type="date"
+              class="mt-1.5 block w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-slate-900 focus:border-[var(--brand)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]"
+              [value]="teamEndDate()"
+              (input)="updateTeamEnd($event)"
+            />
+          </label>
+          <button
+            type="button"
+            data-team-custom-range
+            class="rounded-lg border border-[var(--brand)] bg-white px-4 py-2 text-sm font-bold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:opacity-50"
+            [disabled]="teamLoading()"
+            (click)="applyTeamRange()"
+          >
+            Apply range
+          </button>
+        </div>
+
+        <label class="inline-flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <input
+            type="checkbox"
+            class="size-4 rounded border-slate-300 text-[var(--brand)] focus:ring-[var(--focus-ring)]"
+            [checked]="includeInactive()"
+            (change)="toggleInactive($event)"
+          />
+          Include inactive direct reports
+        </label>
+
+        @if (teamError()) {
+          <div
+            role="alert"
+            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {{ teamError() }}
+          </div>
+        }
+        @if (teamExportError()) {
+          <div
+            role="alert"
+            class="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+          >
+            {{ teamExportError() }}
+          </div>
+        }
+
+        @if (teamLoading() && !teamReport()) {
+          <p role="status" class="py-6 text-center text-slate-600">Loading team insights...</p>
+        } @else if (teamReport(); as report) {
+          <div class="flex flex-wrap items-baseline justify-between gap-2">
+            <h3 class="font-bold text-slate-900">{{ teamLabel() }}</h3>
+            <p class="text-sm text-slate-600">
+              {{ report.startDate }} to {{ report.endDate }} · {{ report.reportingTimezone }}
+            </p>
+          </div>
+
+          <div class="grid gap-3 sm:grid-cols-3">
+            <div class="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wide text-emerald-800">Team worked</p>
+              <p class="mt-1 text-xl font-black text-emerald-950">
+                {{ report.totalWorkedSeconds | secondsDuration }}
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wide text-slate-600">Average</p>
+              <p class="mt-1 text-xl font-black text-slate-900">
+                @if (report.averageWorkedSeconds === null) {
+                  —
+                } @else {
+                  {{ report.averageWorkedSeconds | secondsDuration }}
+                }
+              </p>
+            </div>
+            <div class="rounded-xl border border-slate-200 bg-slate-50 p-4">
+              <p class="text-xs font-bold uppercase tracking-wide text-slate-600">Employees</p>
+              <p class="mt-1 text-xl font-black text-slate-900">{{ report.includedMemberCount }}</p>
+              @if (report.excludedInactiveCount > 0) {
+                <p class="mt-1 text-xs text-slate-500">
+                  {{ report.excludedInactiveCount }} inactive excluded
+                </p>
+              }
+            </div>
+          </div>
+
+          @if (teamView() === 'belowEightHours') {
+            <p
+              class="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900"
+            >
+              Showing employees with less than 8 worked hours as of this snapshot. This is not an
+              attendance or performance judgment.
+            </p>
+          }
+
+          @if (visibleTeamMembers().length === 0) {
+            <p class="rounded-lg bg-slate-50 px-4 py-6 text-center text-sm text-slate-600">
+              {{
+                teamView() === 'belowEightHours'
+                  ? 'No employees are below 8 hours in this snapshot.'
+                  : 'No employees are included in this report.'
+              }}
+            </p>
+          } @else {
+            <div
+              class="overflow-x-auto rounded-xl border border-[var(--border)]"
+              aria-live="polite"
+            >
+              <table class="min-w-full border-collapse text-left text-sm">
+                <caption class="sr-only">
+                  Team worked time for the selected period
+                </caption>
+                <thead class="bg-[var(--brand-soft)]">
+                  <tr>
+                    <th class="px-4 py-3 font-bold text-[var(--brand-deep)]" scope="col">
+                      Employee
+                    </th>
+                    <th class="px-4 py-3 font-bold text-[var(--brand-deep)]" scope="col">Status</th>
+                    <th class="px-4 py-3 text-right font-bold text-[var(--brand-deep)]" scope="col">
+                      Worked
+                    </th>
+                    <th class="px-4 py-3 text-right font-bold text-[var(--brand-deep)]" scope="col">
+                      Breaks
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (member of visibleTeamMembers(); track member.userId) {
+                    <tr
+                      class="border-t border-slate-100"
+                      [attr.data-team-insight-member]="member.userId"
+                    >
+                      <td class="px-4 py-3">
+                        <p class="font-semibold text-slate-900">
+                          {{ member.firstName }} {{ member.lastName }}
+                        </p>
+                        <p class="font-mono text-xs text-slate-500">{{ member.employeeNumber }}</p>
+                      </td>
+                      <td class="px-4 py-3 text-slate-600">
+                        {{ member.isActive ? 'Active' : 'Inactive' }}
+                      </td>
+                      <td class="whitespace-nowrap px-4 py-3 text-right font-bold text-slate-900">
+                        {{ member.workedSeconds | secondsDuration }}
+                      </td>
+                      <td class="whitespace-nowrap px-4 py-3 text-right text-slate-600">
+                        {{ member.breakSeconds | secondsDuration }}
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          }
+
+          <p class="text-xs text-slate-500">
+            As of {{ formatAsOf(report.asOf, report.reportingTimezone) }}
+          </p>
+        }
+      </div>
+    </section>
+  }
+</div>

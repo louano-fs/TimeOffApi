@@ -89,6 +89,8 @@
             />
           </section>
 
+          <app-time-insights-panel [isManager]="isManager()" />
+
           <section>
             <app-time-log-table
               [timeLogs]="timeLogs()"

@@ -6,6 +6,7 @@ import { provideRouter } from '@angular/router';
 import { AuthResponse } from '../../../core/auth/auth.model';
 import { ClockStatusResponse, TimeLogResponse } from '../../../shared/models/clock.model';
 import { PagedResponse, WorkSessionResponse } from '../../../shared/models/time-log.model';
+import { PersonalTimeReport, TeamTimeReport } from '../../../shared/models/time-report.model';
 import { DashboardPage } from './dashboard-page';
 
 describe('DashboardPage', () => {
@@ -66,6 +67,42 @@ describe('DashboardPage', () => {
     pageSize: 20,
     totalCount: 1,
     totalPages: 1,
+  };
+
+  const personalReport: PersonalTimeReport = {
+    startDate: '2026-08-05',
+    endDate: '2026-08-05',
+    reportingTimezone: 'Asia/Manila',
+    asOf: '2026-08-05T01:00:00Z',
+    workedSeconds: 28_800,
+    breakSeconds: 3_600,
+    workSessionCount: 1,
+    daily: [{ date: '2026-08-05', workedSeconds: 28_800, breakSeconds: 3_600 }],
+  };
+
+  const teamReport: TeamTimeReport = {
+    startDate: '2026-08-05',
+    endDate: '2026-08-05',
+    reportingTimezone: 'Asia/Manila',
+    asOf: '2026-08-05T01:00:00Z',
+    includedMemberCount: 1,
+    excludedInactiveCount: 0,
+    totalWorkedSeconds: 28_800,
+    totalBreakSeconds: 3_600,
+    averageWorkedSeconds: 28_800,
+    members: [
+      {
+        userId: 21,
+        employeeId: 1001,
+        employeeNumber: 'EMP-1001',
+        firstName: 'Taylor',
+        lastName: 'Employee',
+        isActive: true,
+        workedSeconds: 28_800,
+        breakSeconds: 3_600,
+        workSessionCount: 1,
+      },
+    ],
   };
 
   beforeEach(async () => {
@@ -150,6 +187,7 @@ describe('DashboardPage', () => {
     createDashboard();
 
     flushDashboardRequests();
+    expectTeamReportRequest().flush(teamReport);
     httpTesting.expectOne('/api/team').flush([
       {
         userId: 21,
@@ -184,6 +222,13 @@ describe('DashboardPage', () => {
   function flushDashboardRequests(): void {
     httpTesting.expectOne('/api/time-clock/status').flush(clockedOutStatus);
     expectTimeLogsRequest().flush(timeLogs);
+    httpTesting.expectOne('/api/time-logs/report').flush(personalReport);
+  }
+
+  function expectTeamReportRequest() {
+    const request = httpTesting.expectOne((candidate) => candidate.url === '/api/team/report');
+    expect(request.request.params.get('includeInactive')).toBe('false');
+    return request;
   }
 
   function expectTimeLogsRequest() {
