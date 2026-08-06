@@ -65,6 +65,8 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddSingleton(TimeProvider.System);
 builder.Services.AddSingleton<IUserLockService, UserLockService>();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IManagerScopeResolver, ManagerScopeResolver>();
+builder.Services.AddScoped<IManagerAssistantCapabilitiesService, ManagerAssistantCapabilitiesService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITimeClockService, TimeClockService>();
 builder.Services.AddScoped<ITimeLogService, TimeLogService>();
@@ -91,6 +93,15 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 
 builder.Services.Configure<JwtOptions>(
     builder.Configuration.GetSection(JwtOptions.SectionName));
+builder.Services.AddOptions<ManagerAssistantOptions>()
+    .BindConfiguration(ManagerAssistantOptions.SectionName)
+    .Validate(
+        ManagerAssistantOptions.HasValidLimits,
+        "ManagerAssistant limits are outside the supported range.")
+    .Validate(
+        ManagerAssistantOptions.HasRequiredProviderSettings,
+        "ManagerAssistant Provider and Model are required when the feature is enabled.")
+    .ValidateOnStart();
 var jwt = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
     ?? throw new InvalidOperationException("JWT configuration is missing.");
 if (Encoding.UTF8.GetByteCount(jwt.Key) < 32)
