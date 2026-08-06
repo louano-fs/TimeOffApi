@@ -56,6 +56,26 @@ public static class DevelopmentDataSeeder
             db.Users.Add(admin);
         }
 
+        var manager = await db.Users.SingleOrDefaultAsync(x => x.Email == "manager@timeclock.local");
+        if (manager is null)
+        {
+            manager = new User
+            {
+                EmployeeId = 8000,
+                EmployeeNumber = "MGR-DEV",
+                Email = "manager@timeclock.local",
+                FirstName = "Morgan",
+                LastName = "Manager",
+                Role = UserRole.Manager,
+                Timezone = "Asia/Manila",
+                IsActive = true,
+                CreatedAt = createdAt
+            };
+            manager.PasswordHash = passwordHasher.HashPassword(manager, DefaultPassword);
+            db.Users.Add(manager);
+            await db.SaveChangesAsync();
+        }
+
         for (var index = 0; index < 50; index++)
         {
             var employeeId = 1001 + index;
@@ -78,6 +98,14 @@ public static class DevelopmentDataSeeder
             user.PasswordHash = passwordHasher.HashPassword(user, DefaultPassword);
             db.Users.Add(user);
         }
+
+        await db.SaveChangesAsync();
+
+        var teamMembers = await db.Users
+            .Where(x => x.EmployeeId >= 1001 && x.EmployeeId <= 1010 && x.ManagerId == null)
+            .ToListAsync();
+        foreach (var teamMember in teamMembers)
+            teamMember.ManagerId = manager.Id;
 
         await db.SaveChangesAsync();
 

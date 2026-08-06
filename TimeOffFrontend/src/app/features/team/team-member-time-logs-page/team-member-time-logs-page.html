@@ -1,0 +1,71 @@
+<main class="min-h-screen bg-[var(--surface-muted)]">
+  <header
+    class="border-t-4 border-[var(--brand)] bg-[var(--brand-dark)] text-white shadow-lg shadow-emerald-950/10"
+  >
+    <div
+      class="mx-auto flex max-w-7xl flex-col gap-5 px-4 py-5 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8"
+    >
+      <div class="flex min-w-0 items-center gap-4">
+        <a
+          routerLink="/"
+          class="rounded-lg border border-white/30 px-3 py-2 text-sm font-semibold transition hover:bg-white/10 focus:outline-none focus:ring-4 focus:ring-white/30"
+        >
+          Back to dashboard
+        </a>
+        <div class="min-w-0 border-l border-white/25 pl-4">
+          <p class="text-xs font-bold uppercase tracking-[0.2em] text-emerald-100">Team</p>
+          <h1 class="mt-1 truncate text-2xl font-bold sm:text-3xl">
+            @if (member(); as teamMember) {
+              {{ teamMember.firstName }} {{ teamMember.lastName }}
+            } @else {
+              Employee time logs
+            }
+          </h1>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <p class="font-mono text-sm font-bold tracking-wide text-white">
+          #{{ authService.session()?.employeeNumber }}
+        </p>
+        <button
+          type="button"
+          class="rounded-xl border border-white/40 bg-white px-4 py-2.5 text-sm font-bold text-[var(--brand-deep)] shadow-sm transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-white/35"
+          (click)="logout()"
+        >
+          Log out
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <div class="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-8 lg:px-8">
+    @if (isMemberLoading()) {
+      <div
+        role="status"
+        class="rounded-2xl border border-[var(--border)] bg-white px-6 py-12 text-center text-slate-600"
+      >
+        Loading team member...
+      </div>
+    } @else if (member(); as teamMember) {
+      <app-time-log-table
+        eyebrow="Team member history"
+        [title]="teamMember.firstName + ' ' + teamMember.lastName + ' time logs'"
+        emptyMessage="This employee has no completed or active work sessions yet."
+        [caption]="teamMember.firstName + ' ' + teamMember.lastName + ' work sessions and breaks'"
+        [timeLogs]="timeLogs()"
+        [isLoading]="isTimeLogsLoading()"
+        [errorMessage]="errorMessage()"
+        (pageRequested)="loadTimeLogs($event, true)"
+        (refreshRequested)="loadTimeLogs(currentPage(), true)"
+      />
+    } @else {
+      <div
+        role="alert"
+        class="rounded-2xl border border-red-200 bg-red-50 px-6 py-12 text-center text-red-700"
+      >
+        {{ errorMessage() }}
+      </div>
+    }
+  </div>
+</main>

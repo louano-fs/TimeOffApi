@@ -1,6 +1,7 @@
 import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 
 import { AuthResponse } from '../../../core/auth/auth.model';
 import { ClockStatusResponse, TimeLogResponse } from '../../../shared/models/clock.model';
@@ -21,6 +22,17 @@ describe('DashboardPage', () => {
     firstName: 'Test',
     lastName: 'Employee',
     role: 'Employee',
+  };
+
+  const managerSession: AuthResponse = {
+    ...authenticatedSession,
+    userId: 8,
+    employeeId: 8000,
+    employeeNumber: 'MGR-DEV',
+    email: 'manager@example.com',
+    firstName: 'Morgan',
+    lastName: 'Manager',
+    role: 'Manager',
   };
 
   const clockedOutStatus: ClockStatusResponse = {
@@ -61,7 +73,7 @@ describe('DashboardPage', () => {
 
     await TestBed.configureTestingModule({
       imports: [DashboardPage],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), provideRouter([])],
     }).compileComponents();
 
     httpTesting = TestBed.inject(HttpTestingController);
@@ -133,13 +145,40 @@ describe('DashboardPage', () => {
     fixture.destroy();
   });
 
+  it('shows assigned employees and their time logs to a manager', () => {
+    storeAuthenticatedSession(managerSession);
+    createDashboard();
+
+    flushDashboardRequests();
+    httpTesting.expectOne('/api/team').flush([
+      {
+        userId: 21,
+        employeeId: 1001,
+        employeeNumber: 'EMP-1001',
+        email: 'employee@example.com',
+        firstName: 'Taylor',
+        lastName: 'Employee',
+        isActive: true,
+      },
+    ]);
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Team');
+    expect(fixture.nativeElement.textContent).toContain('Taylor Employee');
+    const viewLogsLink: HTMLAnchorElement =
+      fixture.nativeElement.querySelector('[data-team-member="21"]');
+    expect(viewLogsLink.getAttribute('href')).toBe('/team/21/time-logs');
+
+    fixture.destroy();
+  });
+
   function createDashboard(): void {
     fixture = TestBed.createComponent(DashboardPage);
     fixture.detectChanges();
   }
 
-  function storeAuthenticatedSession(): void {
-    sessionStorage.setItem('time-clock-session', JSON.stringify(authenticatedSession));
+  function storeAuthenticatedSession(session = authenticatedSession): void {
+    sessionStorage.setItem('time-clock-session', JSON.stringify(session));
   }
 
   function flushDashboardRequests(): void {

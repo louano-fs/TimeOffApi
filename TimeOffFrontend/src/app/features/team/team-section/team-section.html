@@ -1,0 +1,127 @@
+<section
+  aria-labelledby="team-heading"
+  class="overflow-hidden rounded-2xl border border-[var(--border)] bg-white shadow-[0_18px_45px_-34px_rgba(6,78,44,0.4)]"
+>
+  <header
+    class="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--border)] bg-gradient-to-r from-[var(--brand-softer)] to-white px-6 py-5"
+  >
+    <div>
+      <p class="text-sm font-semibold uppercase tracking-wider text-[var(--brand-dark)]">
+        Manager workspace
+      </p>
+      <h2 id="team-heading" class="mt-1 text-xl font-bold text-slate-900">Team</h2>
+      @if (members(); as teamMembers) {
+        <p class="mt-1 text-sm text-slate-600">
+          {{ teamMembers.length }}
+          {{ teamMembers.length === 1 ? 'employee' : 'employees' }} assigned
+        </p>
+      }
+    </div>
+
+    <button
+      type="button"
+      class="rounded-xl border border-[var(--brand)] bg-white px-4 py-2 text-sm font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)] disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+      [disabled]="isMembersLoading()"
+      (click)="membersRefreshRequested.emit()"
+    >
+      {{ isMembersLoading() && members() ? 'Refreshing...' : 'Refresh team' }}
+    </button>
+  </header>
+
+  @if (membersError()) {
+    <div
+      role="alert"
+      class="m-6 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+    >
+      {{ membersError() }}
+    </div>
+  }
+
+  @if (isMembersLoading() && !members()) {
+    <div role="status" class="px-6 py-12 text-center text-slate-600">Loading your team...</div>
+  } @else if (members(); as teamMembers) {
+    @if (teamMembers.length === 0) {
+      <div class="px-6 py-12 text-center">
+        <p class="font-medium text-slate-900">No employees assigned</p>
+        <p class="mt-1 text-sm text-slate-600">Employees assigned to you will appear here.</p>
+      </div>
+    } @else {
+      <div class="overflow-x-auto">
+        <table class="min-w-full border-collapse text-left">
+          <caption class="sr-only">
+            Employees assigned to this manager
+          </caption>
+          <thead class="bg-[var(--brand-soft)]">
+            <tr class="border-b border-[var(--border)]">
+              <th
+                class="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
+                scope="col"
+              >
+                Employee
+              </th>
+              <th
+                class="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
+                scope="col"
+              >
+                Employee number
+              </th>
+              <th
+                class="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
+                scope="col"
+              >
+                Email
+              </th>
+              <th
+                class="px-5 py-3 text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
+                scope="col"
+              >
+                Status
+              </th>
+              <th
+                class="px-5 py-3 text-right text-xs font-semibold uppercase tracking-wide text-[var(--brand-deep)]"
+                scope="col"
+              >
+                Time logs
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (member of teamMembers; track member.userId) {
+              <tr
+                class="border-b border-slate-100 transition-colors hover:bg-[var(--brand-softer)]"
+              >
+                <td class="whitespace-nowrap px-5 py-4 font-semibold text-slate-900">
+                  {{ member.firstName }} {{ member.lastName }}
+                </td>
+                <td class="whitespace-nowrap px-5 py-4 font-mono text-sm text-slate-700">
+                  {{ member.employeeNumber }}
+                </td>
+                <td class="px-5 py-4 text-slate-700">{{ member.email }}</td>
+                <td class="whitespace-nowrap px-5 py-4">
+                  <span
+                    class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                    [class.bg-emerald-100]="member.isActive"
+                    [class.text-emerald-800]="member.isActive"
+                    [class.bg-slate-100]="!member.isActive"
+                    [class.text-slate-600]="!member.isActive"
+                  >
+                    {{ member.isActive ? 'Active' : 'Inactive' }}
+                  </span>
+                </td>
+                <td class="whitespace-nowrap px-5 py-4 text-right">
+                  <a
+                    class="rounded-lg px-3 py-2 text-sm font-semibold text-[var(--brand-dark)] transition hover:bg-[var(--brand-soft)] focus:outline-none focus:ring-4 focus:ring-[var(--focus-ring)]"
+                    [attr.data-team-member]="member.userId"
+                    [routerLink]="['/team', member.userId, 'time-logs']"
+                  >
+                    View logs
+                  </a>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+  }
+</section>

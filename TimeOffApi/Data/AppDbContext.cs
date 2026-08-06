@@ -20,6 +20,11 @@ public sealed class AppDbContext(DbContextOptions<AppDbContext> options) : DbCon
         user.Property(x => x.FirstName).HasMaxLength(100);
         user.Property(x => x.LastName).HasMaxLength(100);
         user.Property(x => x.Timezone).HasMaxLength(100);
+        user.HasIndex(x => x.ManagerId);
+        user.HasOne(x => x.Manager)
+            .WithMany(x => x.DirectReports)
+            .HasForeignKey(x => x.ManagerId)
+            .OnDelete(DeleteBehavior.Restrict);
 
         var request = modelBuilder.Entity<TimeOffRequest>();
         request.Property(x => x.StartDate).HasColumnType("date");
