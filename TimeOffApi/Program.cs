@@ -72,10 +72,10 @@ builder.Services.AddScoped<IManagerAssistantTeamToolService, ManagerAssistantTea
 builder.Services.AddScoped<IManagerAssistantOrchestrator, ManagerAssistantOrchestrator>();
 builder.Services.AddSingleton<IManagerAssistantRateLimiter, ManagerAssistantRateLimiter>();
 builder.Services.AddSingleton<UnconfiguredAssistantModelClient>();
-builder.Services.AddSingleton<IAssistantModelClient>(services =>
-    services.GetRequiredService<UnconfiguredAssistantModelClient>());
+builder.Services.AddSingleton<OpenAiAssistantModelClient>();
+builder.Services.AddSingleton<IAssistantModelClient>(ResolveAssistantModelClient);
 builder.Services.AddSingleton<IAssistantModelAvailability>(services =>
-    services.GetRequiredService<UnconfiguredAssistantModelClient>());
+    (IAssistantModelAvailability)services.GetRequiredService<IAssistantModelClient>());
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<ITimeClockService, TimeClockService>();
 builder.Services.AddScoped<ITimeLogService, TimeLogService>();
@@ -179,5 +179,13 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.Run();
+
+static IAssistantModelClient ResolveAssistantModelClient(IServiceProvider services)
+{
+    var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<ManagerAssistantOptions>>();
+    return OpenAiAssistantModelClient.IsConfiguredProvider(options.Value)
+        ? services.GetRequiredService<OpenAiAssistantModelClient>()
+        : services.GetRequiredService<UnconfiguredAssistantModelClient>();
+}
 
 public partial class Program;

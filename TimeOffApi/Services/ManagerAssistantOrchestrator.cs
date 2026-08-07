@@ -340,7 +340,7 @@ public sealed partial class ManagerAssistantOrchestrator(
     [
         new(GetTeamWorkedTimeTool,
             "Get exact current-direct-report worked time totals for one inclusive date range.",
-            """{"type":"object","additionalProperties":false,"required":["start_date","end_date","include_inactive","order"],"properties":{"start_date":{"type":"string","format":"date"},"end_date":{"type":"string","format":"date"},"include_inactive":{"type":"boolean"},"order":{"type":"string","enum":["name","workedAscending","workedDescending"]},"limit":{"type":["integer","null"],"minimum":1}}}"""),
+            """{"type":"object","additionalProperties":false,"required":["start_date","end_date","include_inactive","order","limit"],"properties":{"start_date":{"type":"string","format":"date"},"end_date":{"type":"string","format":"date"},"include_inactive":{"type":"boolean"},"order":{"type":"string","enum":["name","workedAscending","workedDescending"]},"limit":{"type":["integer","null"],"minimum":1}}}"""),
         new(FindTeamMembersByWorkedTimeTool,
             "Find current direct reports above or below an explicit worked-time threshold.",
             """{"type":"object","additionalProperties":false,"required":["start_date","end_date","comparison","threshold_value","threshold_unit","include_inactive"],"properties":{"start_date":{"type":"string","format":"date"},"end_date":{"type":"string","format":"date"},"comparison":{"type":"string","enum":["lessThan","lessThanOrEqual","greaterThan","greaterThanOrEqual"]},"threshold_value":{"type":"number","minimum":0},"threshold_unit":{"type":"string","enum":["seconds","minutes","hours"]},"include_inactive":{"type":"boolean"}}}"""),

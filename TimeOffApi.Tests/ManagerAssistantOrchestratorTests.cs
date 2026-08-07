@@ -49,8 +49,28 @@ public sealed class ManagerAssistantOrchestratorTests
             !x.JsonSchema.Contains("manager_id", StringComparison.OrdinalIgnoreCase)
             && !x.JsonSchema.Contains("user_id", StringComparison.OrdinalIgnoreCase)
             && !x.Name.Contains("write", StringComparison.OrdinalIgnoreCase));
+        model.Requests[0].Tools.Should().OnlyContain(x => HasStrictObjectSchema(x));
         result.Answer.Should().Be("I found the current team totals.");
         result.Parts.Should().ContainSingle().Which.Should().BeOfType<TeamWorkedTimeSummaryPart>();
+    }
+
+    private static bool HasStrictObjectSchema(AssistantToolDefinition tool)
+    {
+        using var schema = JsonDocument.Parse(tool.JsonSchema);
+        var root = schema.RootElement;
+        var properties = root.GetProperty("properties")
+            .EnumerateObject()
+            .Select(x => x.Name)
+            .Order()
+            .ToArray();
+        var required = root.GetProperty("required")
+            .EnumerateArray()
+            .Select(x => x.GetString())
+            .Order()
+            .ToArray();
+
+        return root.GetProperty("additionalProperties").ValueKind == JsonValueKind.False
+            && properties.SequenceEqual(required);
     }
 
     [Fact]
