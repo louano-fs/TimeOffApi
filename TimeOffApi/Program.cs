@@ -13,6 +13,14 @@ using TimeOffApi.Infrastructure;
 using TimeOffApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+if (builder.Environment.IsDevelopment()
+    && string.IsNullOrWhiteSpace(builder.Configuration["OPENAI_API_KEY"]))
+{
+    var localApiKey = ReadLocalOpenAiApiKey(
+        Path.Combine(builder.Environment.ContentRootPath, ".env"));
+    if (!string.IsNullOrWhiteSpace(localApiKey))
+        builder.Configuration["OPENAI_API_KEY"] = localApiKey;
+}
 
 builder.Services.AddControllers(options =>
     {
@@ -179,6 +187,42 @@ await using (var scope = app.Services.CreateAsyncScope())
 }
 
 app.Run();
+
+static string? ReadLocalOpenAiApiKey(string path)
+{
+    if (!File.Exists(path))
+        return null;
+
+    foreach (var rawLine in File.ReadLines(path))
+    {
+        var line = rawLine.Trim();
+        if (line.Length == 0 || line.StartsWith('#'))
+            continue;
+        if (line.StartsWith("export ", StringComparison.Ordinal))
+            line = line[7..].TrimStart();
+
+        var separatorIndex = line.IndexOf('=');
+        if (separatorIndex <= 0
+            || !line[..separatorIndex].Trim().Equals(
+                "OPENAI_API_KEY",
+                StringComparison.Ordinal))
+        {
+            continue;
+        }
+
+        var value = line[(separatorIndex + 1)..].Trim();
+        if (value.Length >= 2
+            && ((value[0] == '"' && value[^1] == '"')
+                || (value[0] == '\'' && value[^1] == '\'')))
+        {
+            value = value[1..^1];
+        }
+
+        return string.IsNullOrWhiteSpace(value) ? null : value;
+    }
+
+    return null;
+}
 
 static IAssistantModelClient ResolveAssistantModelClient(IServiceProvider services)
 {
