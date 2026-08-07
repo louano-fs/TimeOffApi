@@ -63,7 +63,9 @@ and current active database role are Manager. The provider-neutral backend at
 tools for totals, thresholds, one exact team member, current status, and Excel
 export preparation. Development uses OpenAI `gpt-5-nano`, the lowest-cost GPT-5
 model with function calling. Supply `OPENAI_API_KEY` through the process
-environment; never store it in tracked configuration.
+environment or `TimeOffApi/.env`; process environment values take precedence.
+The local `.env` file is ignored by Git and loaded only in Development. Never
+store the key in tracked configuration.
 
 The JWT key in `appsettings.json` is for local development only. Override it in
 deployed environments:
