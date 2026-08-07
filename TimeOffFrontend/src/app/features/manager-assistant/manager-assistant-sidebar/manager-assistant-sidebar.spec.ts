@@ -21,12 +21,12 @@ describe('ManagerAssistantSidebar', () => {
 
   afterEach(() => httpTesting.verify());
 
-  it('stays hidden when the assistant capability is disabled', () => {
+  it('stays visible for a manager when provider capability is disabled', () => {
     flushCapabilities(false);
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('aside')).toBeNull();
-    expect(fixture.nativeElement.classList.contains('assistant-hidden')).toBe(true);
+    expect(fixture.nativeElement.querySelector('aside')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Team assistant');
   });
 
   it('sends a manager question and renders verified threshold evidence', () => {

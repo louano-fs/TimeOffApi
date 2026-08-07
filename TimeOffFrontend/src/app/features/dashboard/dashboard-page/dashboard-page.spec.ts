@@ -137,6 +137,7 @@ describe('DashboardPage', () => {
     expect(fixture.nativeElement.textContent).toContain('Clocked Out');
     expect(fixture.nativeElement.textContent).toContain('Time Logs');
     expect(fixture.nativeElement.textContent).toContain('Aug 5, 2026');
+    expect(fixture.nativeElement.textContent).not.toContain('Team assistant');
 
     fixture.destroy();
   });
@@ -209,6 +210,7 @@ describe('DashboardPage', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Team');
+    expect(fixture.nativeElement.textContent).toContain('Team assistant');
     expect(fixture.nativeElement.textContent).toContain('Taylor Employee');
     const viewLogsLink: HTMLAnchorElement =
       fixture.nativeElement.querySelector('[data-team-member="21"]');

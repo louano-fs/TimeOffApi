@@ -26,17 +26,20 @@ import { SecondsDurationPipe } from '../../../shared/pipes/seconds-duration-pipe
   templateUrl: './manager-assistant-sidebar.html',
   styleUrl: './manager-assistant-sidebar.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  host: {
-    '[class.assistant-hidden]': '!available()',
-  },
 })
 export class ManagerAssistantSidebar implements OnInit {
   private readonly api = inject(ManagerAssistantApiService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly activeObjectUrls = new Set<string>();
 
-  protected readonly available = signal(false);
-  protected readonly messages = signal<readonly ManagerAssistantUiMessage[]>([]);
+  protected readonly messages = signal<readonly ManagerAssistantUiMessage[]>([
+    {
+      id: 'welcome',
+      role: 'assistant',
+      text: 'Ask me about your current team\'s hours, status, or Excel exports.',
+      parts: [],
+    },
+  ]);
   protected readonly draft = signal('');
   protected readonly sending = signal(false);
   protected readonly error = signal<string | null>(null);
@@ -58,20 +61,9 @@ export class ManagerAssistantSidebar implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (capabilities) => {
-          this.available.set(capabilities.enabled);
           this.maxMessageLength.set(capabilities.maxMessageLength);
-          if (capabilities.enabled) {
-            this.messages.set([
-              {
-                id: 'welcome',
-                role: 'assistant',
-                text: 'Ask me about your current team\'s hours, status, or Excel exports.',
-                parts: [],
-              },
-            ]);
-          }
         },
-        error: () => this.available.set(false),
+        error: () => undefined,
       });
   }
 
