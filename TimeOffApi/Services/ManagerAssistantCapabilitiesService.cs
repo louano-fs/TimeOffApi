@@ -11,7 +11,8 @@ public interface IManagerAssistantCapabilitiesService
 
 public sealed class ManagerAssistantCapabilitiesService(
     IManagerScopeResolver scopeResolver,
-    IOptions<ManagerAssistantOptions> options) : IManagerAssistantCapabilitiesService
+    IOptions<ManagerAssistantOptions> options,
+    IAssistantModelAvailability modelAvailability) : IManagerAssistantCapabilitiesService
 {
     private readonly ManagerAssistantOptions _options = options.Value;
 
@@ -19,7 +20,7 @@ public sealed class ManagerAssistantCapabilitiesService(
         CancellationToken cancellationToken)
     {
         var scope = await scopeResolver.TryResolveAsync(cancellationToken);
-        var enabled = _options.Enabled && scope is not null;
+        var enabled = _options.Enabled && modelAvailability.IsAvailable && scope is not null;
 
         return new(
             enabled,

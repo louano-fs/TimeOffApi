@@ -55,11 +55,15 @@ current-team totals, an exact below-eight-hours snapshot, inactive inclusion,
 custom ranges, and team Excel export. These controls do not require an AI
 provider.
 
-The manager-assistant foundation is disabled by default. Authenticated clients
-may call `GET /api/manager-assistant/capabilities`; it reports enabled only when
-the feature is configured and both the JWT role and the current active database
-role are Manager. Keep `ManagerAssistant:Enabled` false until the provider-backed
-message endpoint and sidebar UI are deployed.
+The manager assistant remains disabled by default outside Development. Authenticated clients may
+call `GET /api/manager-assistant/capabilities`; it reports enabled only when the
+feature is configured, a live model adapter is available, and both the JWT role
+and current active database role are Manager. The provider-neutral backend at
+`POST /api/manager-assistant/messages` exposes only five read-only direct-report
+tools for totals, thresholds, one exact team member, current status, and Excel
+export preparation. Development uses OpenAI `gpt-5-nano`, the lowest-cost GPT-5
+model with function calling. Supply `OPENAI_API_KEY` through the process
+environment; never store it in tracked configuration.
 
 The JWT key in `appsettings.json` is for local development only. Override it in
 deployed environments:

@@ -20,3 +20,9 @@ public sealed class NotFoundException(string code, string message)
 
 public sealed class ConflictException(string code, string message)
     : AppException(StatusCodes.Status409Conflict, code, message);
+
+public sealed class TooManyRequestsException(string code, string message)
+    : AppException(StatusCodes.Status429TooManyRequests, code, message);
+
+public sealed class ServiceUnavailableException(string code, string message)
+    : AppException(StatusCodes.Status503ServiceUnavailable, code, message);

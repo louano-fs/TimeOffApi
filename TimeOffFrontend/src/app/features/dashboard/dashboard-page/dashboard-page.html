@@ -110,6 +110,10 @@
             />
           }
         </div>
+
+        @if (isManager()) {
+          <app-manager-assistant-sidebar class="dashboard-sidebar" />
+        }
       </div>
     </div>
   }

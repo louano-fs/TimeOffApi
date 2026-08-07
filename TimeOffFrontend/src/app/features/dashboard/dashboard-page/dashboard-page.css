@@ -13,7 +13,7 @@
 }
 
 @media (min-width: 80rem) {
-  .dashboard-layout:has(> .dashboard-sidebar) {
+  .dashboard-layout:has(> .dashboard-sidebar:not(.assistant-hidden)) {
     grid-template-columns: minmax(0, 1fr) minmax(20rem, 23rem);
   }
 

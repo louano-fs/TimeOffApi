@@ -199,6 +199,13 @@ describe('DashboardPage', () => {
         isActive: true,
       },
     ]);
+    httpTesting.expectOne('/api/manager-assistant/capabilities').flush({
+      enabled: false,
+      audience: null,
+      scope: null,
+      streaming: false,
+      maxMessageLength: 1_000,
+    });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Team');

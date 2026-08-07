@@ -87,6 +87,30 @@ public sealed class ManagerAssistantCapabilitiesTests
     }
 
     [Fact]
+    public async Task Capability_stays_disabled_until_a_live_model_adapter_is_available()
+    {
+        await using var fixture = await TestFixture.CreateAsync(
+            UserRole.Manager,
+            isActive: true,
+            tokenHasManagerRole: true,
+            featureEnabled: true);
+        var service = new ManagerAssistantCapabilitiesService(
+            fixture.ScopeResolver,
+            Options.Create(new ManagerAssistantOptions
+            {
+                Enabled = true,
+                Provider = "Pending",
+                Model = "pending-model"
+            }),
+            new UnconfiguredAssistantModelClient());
+
+        var result = await service.GetAsync(TestContext.Current.CancellationToken);
+
+        result.Enabled.Should().BeFalse();
+        result.Scope.Should().BeNull();
+    }
+
+    [Fact]
     public async Task Required_scope_captures_server_identity_timezone_and_one_as_of_instant()
     {
         await using var fixture = await TestFixture.CreateAsync(
@@ -212,7 +236,10 @@ public sealed class ManagerAssistantCapabilitiesTests
                 db,
                 user,
                 scopeResolver,
-                new ManagerAssistantCapabilitiesService(scopeResolver, managerOptions));
+                new ManagerAssistantCapabilitiesService(
+                    scopeResolver,
+                    managerOptions,
+                    new AvailableModel()));
         }
 
         public async ValueTask DisposeAsync()
@@ -225,5 +252,10 @@ public sealed class ManagerAssistantCapabilitiesTests
     private sealed class FixedTimeProvider(DateTimeOffset now) : TimeProvider
     {
         public override DateTimeOffset GetUtcNow() => now;
+    }
+
+    private sealed class AvailableModel : IAssistantModelAvailability
+    {
+        public bool IsAvailable => true;
     }
 }
